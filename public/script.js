@@ -23,6 +23,16 @@
   function pad(n) {
     return (n < 10 ? "0" : "") + n;
   }
+
+  function isOpenNow(hours, currentHour) {
+    var open = Number(hours.open);
+    var close = Number(hours.close);
+    if (!Number.isFinite(open) || !Number.isFinite(close)) return false;
+    if (open === close) return true;
+    return open < close
+      ? currentHour >= open && currentHour < close
+      : currentHour >= open || currentHour < close;
+  }
   
   // Разрешаем только свои загруженные фото и обычные ссылки http(s)
   function safeUrl(u) {
@@ -153,9 +163,9 @@
       .replace(/^@/, "")
       .split(/[/?]/)[0];
       
-    if (phone) rows.push(linkRow("https://wa.me" + phone, "WhatsApp", "Написать нам"));
-    if (insta) rows.push(linkRow("https://instagram.com" + encodeURIComponent(insta), "Instagram", "Наши новости"));
-    if (c.mapQuery) rows.push(linkRow("https://yandex.ru" + encodeURIComponent(c.mapQuery), "Проложить маршрут", b.address || ""));
+    if (phone) rows.push(linkRow("https://wa.me/" + phone, "WhatsApp", "Написать нам"));
+    if (insta) rows.push(linkRow("https://instagram.com/" + encodeURIComponent(insta), "Instagram", "Наши новости"));
+    if (c.mapQuery) rows.push(linkRow("https://yandex.ru/maps/?text=" + encodeURIComponent(c.mapQuery), "Проложить маршрут", b.address || ""));
     
     $("#contactsList").innerHTML = rows.join("");
   }
@@ -212,7 +222,7 @@
       o = Number(h.open),
       c = Number(h.close);
     var hour = new Date().getHours(),
-      isOpen = hour >= o && hour < c;
+      isOpen = isOpenNow(h, hour);
     var badge = $("#status");
     badge.classList.toggle("open", isOpen);
     badge.lastChild.textContent = isOpen

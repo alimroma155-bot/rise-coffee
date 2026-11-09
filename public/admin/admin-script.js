@@ -240,15 +240,15 @@ document.addEventListener('click', async e => {
     if (confirm('Удалить эту позицию?')) {
       S.categories[sel].items.splice(idx, 1); openItem = null; dirty = true; render(); updSave();
     }
+  }
 
-    if (t.getAttribute('data-a') === 'clear-image') {
-      const item = S.categories[sel].items[parseInt(t.getAttribute('data-i'))];
-      if (item) {
-        item.image = '';
-        dirty = true;
-        render();
-        updSave();
-      }
+  if (t.getAttribute('data-a') === 'clear-image') {
+    const item = S.categories[sel].items[parseInt(t.getAttribute('data-i'))];
+    if (item) {
+      item.image = '';
+      dirty = true;
+      render();
+      updSave();
     }
   }
   

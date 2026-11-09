@@ -7,10 +7,10 @@
 
 :root {
   --ink: #161513;
-  --milk: #fbf9f6;
-  --wood: #d4c5b9;
-  --page: #f4eee6;
-  --soft: #6f6154;
+  --milk: #f7f4ed;
+  --wood: #b89a62;
+  --page: #ece5d9;
+  --soft: #6d6559;
   --d: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   --s: "Inter", system-ui, -apple-system, sans-serif;
   color-scheme: light;
@@ -32,8 +32,8 @@ body {
 
 .app {
   width: 100%;
-  max-width: 100%;
-  margin: 0 auto;    
+  max-width: 1280px;
+  margin: 0 auto;
   background: var(--ink);
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -63,6 +63,7 @@ a {
   padding: 40px 24px 72px;
   color: var(--milk);
   overflow: hidden;
+  overflow-wrap: anywhere;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='%23d4c5b9' fill-opacity='.05'%3E%3Cellipse cx='16' cy='16' rx='11' ry='7.5' transform='rotate(30 16 16)'/%3E%3Cellipse cx='48' cy='40' rx='11' ry='7.5' transform='rotate(-35 48 40)'/%3E%3C/g%3E%3C/svg%3E");
 }
 
@@ -94,7 +95,7 @@ a {
   font-weight: 700;
   font-size: clamp(54px, 10vw, 110px);
   line-height: 0.9;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   margin: 32px 0 14px;
 }
 
@@ -134,7 +135,7 @@ a {
   position: relative;
   margin-top: -28px;
   background: var(--milk);
-  border-radius: 28px 28px 0 0;
+  border-radius: 12px 12px 0 0;
   padding: 0 20px 140px;
   width: 100%;
 }
@@ -163,7 +164,7 @@ a {
   flex: none;
   height: 42px;
   padding: 0 18px;
-  border: 1px solid var(--wood);
+  border: 1px solid color-mix(in srgb, var(--wood) 62%, transparent);
   border-radius: 999px;
   font-size: 14px;
   font-weight: 500;
@@ -203,8 +204,8 @@ a {
 /* Сетка для карточек товаров: на телефонах сразу встают по 2 штуки в ряд (как у MARSHA) */
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 24px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 12px;
   width: 100%;
 }
 
@@ -215,6 +216,7 @@ a {
   align-items: flex-start;
   gap: 10px;
   width: 100%;
+  min-width: 0;
   padding: 0;
   background: transparent !important;
   border: none !important;
@@ -233,8 +235,8 @@ a {
   width: 100%;
   aspect-ratio: 1 / 1;
   height: auto;
-  border-radius: 20px;
-  background: radial-gradient(circle at 30% 25%, #efe6db, var(--wood)) center/cover no-repeat;
+  border-radius: 8px;
+  background: radial-gradient(circle at 30% 25%, #efe9dd, var(--wood)) center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,6 +247,7 @@ a {
 .tx {
   flex: none;
   width: 100%;
+  min-width: 0;
   padding: 0 4px;
   display: flex;
   flex-direction: column;
@@ -257,6 +260,7 @@ a {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.25;
+  overflow-wrap: anywhere;
   color: var(--ink);
 }
 
@@ -269,19 +273,12 @@ a {
   margin-top: 2px;
 }
 
-.ds {
-  display: none !important; /* Прячем старое длинное описание в сетке */
-}
-
-.stub .th { background: var(--page); }
-.stub .n, .stub .p { color: #a8978a; }
-
 /* ===== БЛОК О НАС ===== */
 .about {
   margin-top: 48px;
   background: var(--ink);
   color: var(--milk);
-  border-radius: 24px;
+  border-radius: 8px;
   padding: 32px 24px;
 }
 
@@ -302,15 +299,17 @@ a {
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 24px;
 }
 
 .f {
   border: 1px solid rgba(212, 197, 185, 0.25);
-  border-radius: 16px;
-  padding: 14px 12px;
+  border-radius: 6px;
+  padding: 12px 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .f b {
@@ -373,7 +372,7 @@ a {
   transform: translateX(-50%);
   z-index: 30;
   display: flex;
-  gap: 4px;
+  gap: 2px;
   padding: 5px;
   background: rgba(22, 21, 19, 0.94);
   -webkit-backdrop-filter: blur(12px);
@@ -383,7 +382,9 @@ a {
 
 .nb {
   height: 44px;
-  padding: 0 20px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 500;
@@ -430,14 +431,19 @@ a {
     max-width: 1200px;
   }
 
-  .hero, .sheet {
-    padding-left: 60px !important;
-    padding-right: 60px !important;
+  .hero {
+    padding-left: 60px;
+    padding-right: 60px;
+  }
+
+  .sheet {
+    padding-left: 60px;
+    padding-right: 60px;
   }
 
   /* На ПК плавно расширяем сетку товаров, чтобы они смотрелись аккуратно */
   .items-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 36px 24px;
   }
 
@@ -454,4 +460,16 @@ a {
   
   #contactsList { justify-content: start; }
   .foot { grid-column: 1 / -1; margin-top: 20px; }
+}
+
+@media (max-width: 380px) {
+  .hero { padding: 28px 18px 56px; }
+  .sheet { padding-right: 16px; padding-left: 16px; }
+  .chips { margin-right: -16px; margin-left: -16px; padding-right: 16px; padding-left: 16px; }
+  .items-grid { gap: 20px 10px; }
+  .n { font-size: 14px; }
+  .p { font-size: 13px; }
+  .facts { grid-template-columns: 1fr; }
+  .nav { width: calc(100% - 24px); }
+  .nb { padding-right: 8px; padding-left: 8px; font-size: 13px; }
 }

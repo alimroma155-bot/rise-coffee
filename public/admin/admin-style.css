@@ -1,9 +1,9 @@
 :root {
   --ink: #161513;
-  --milk: #FBF9F6;
-  --wood: #D4C5B9;
-  --page: #F4EEE6;
-  --soft: #6f6154;
+  --milk: #F7F4ED;
+  --wood: #B89A62;
+  --page: #ECE5D9;
+  --soft: #6D6559;
   --red: #b3402f;
   --d: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
 }
@@ -19,6 +19,7 @@ body {
   background: var(--page);
   color: var(--ink);
   padding-bottom: 120px;
+  overflow-wrap: anywhere;
 }
 
 button, label.btn, label.drop {
@@ -51,13 +52,15 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .logo {
   font-family: var(--d);
   font-weight: 700;
   font-size: 28px;
-  letter-spacing: 6px;
+  letter-spacing: 2px;
+  min-width: 0;
 }
 
 .logo small {
@@ -74,7 +77,7 @@ button {
   height: 40px;
   padding: 0 16px;
   border: 1px solid rgba(212, 197, 185, .4);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--milk);
   text-decoration: none;
   font-size: 14px;
@@ -92,14 +95,14 @@ button {
   padding: 5px;
   background: var(--milk);
   border: 1px solid var(--wood);
-  border-radius: 999px;
+  border-radius: 8px;
   margin-bottom: 18px;
 }
 
 .tab {
   flex: 1;
   height: 46px;
-  border-radius: 999px;
+  border-radius: 5px;
   text-align: center;
   font-weight: 600;
   font-size: 15px;
@@ -129,7 +132,7 @@ button {
   height: 44px;
   padding: 0 18px;
   border: 1px solid var(--wood);
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--milk);
   font-weight: 500;
   font-size: 15px;
@@ -151,7 +154,7 @@ button {
 .card {
   background: var(--milk);
   border: 1px solid var(--wood);
-  border-radius: 22px;
+  border-radius: 8px;
   padding: 18px;
   margin-bottom: 16px;
 }
@@ -191,7 +194,7 @@ input, textarea, select {
   margin-top: 6px;
   padding: 11px 14px;
   border: 1px solid var(--wood);
-  border-radius: 14px;
+  border-radius: 6px;
   background: #fff;
   font: 400 16px 'Inter', sans-serif;
   color: var(--ink);
@@ -220,7 +223,7 @@ input:focus, textarea:focus, select:focus {
   gap: 8px;
   height: 46px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--ink);
   color: var(--milk);
   font-weight: 600;
@@ -269,7 +272,7 @@ input:focus, textarea:focus, select:focus {
 
 .it {
   border: 1px solid var(--wood);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--milk);
   margin-top: 10px;
   overflow: hidden;
@@ -292,7 +295,7 @@ input:focus, textarea:focus, select:focus {
   flex: none;
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: 6px;
   background: var(--page) center/cover;
   display: flex;
   align-items: center;
@@ -343,7 +346,7 @@ input:focus, textarea:focus, select:focus {
   height: 170px;
   margin-top: 14px;
   border: 1.5px dashed var(--wood);
-  border-radius: 16px;
+  border-radius: 8px;
   background: var(--page) center/cover;
   color: var(--soft);
   font-size: 14px;
@@ -387,12 +390,14 @@ input:focus, textarea:focus, select:focus {
   background: rgba(22, 21, 19, .96);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
-  transform: translateY(110%);
-  transition: transform .3s;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .2s, visibility .2s;
 }
 
 #savebar.on {
-  transform: none;
+  visibility: visible;
+  opacity: 1;
 }
 
 #savebar .in {
@@ -421,7 +426,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--ink);
   box-shadow: 0 0 0 1px var(--wood);
   padding: 12px 18px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   opacity: 0;
@@ -442,4 +447,20 @@ input:focus, textarea:focus, select:focus {
     animation: none !important;
     transition: none !important;
   }
+}
+
+@media (max-width: 420px) {
+  .top { padding-right: 16px; padding-left: 16px; }
+  .top .in { align-items: flex-start; }
+  .logo { font-size: 24px; }
+  .logo small { font-size: 11px; }
+  .view { height: 38px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+  .wrap { padding-right: 12px; padding-left: 12px; }
+  .tabs { gap: 2px; padding: 4px; }
+  .tab { height: 44px; font-size: 13px; }
+  .card { padding: 14px; }
+  .two { grid-template-columns: 1fr; gap: 0; }
+  #savebar { padding-right: 12px; padding-left: 12px; }
+  #savebar .in { font-size: 12px; }
+  #savebar .btn { padding-right: 12px; padding-left: 12px; }
 }
