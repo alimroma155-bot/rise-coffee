@@ -1,323 +1,48 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>RISE — управление сайтом</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ===== Оформление: те же цвета, что и на сайте; крупные кнопки под палец ===== */
-:root{--ink:#161513;--milk:#FBF9F6;--wood:#D4C5B9;--page:#F4EEE6;--soft:#6f6154;--red:#b3402f;--d:'Bricolage Grotesque','Inter',system-ui,sans-serif}
-*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-body{font:16px/1.45 'Inter',system-ui,-apple-system,sans-serif;background:var(--page);color:var(--ink);padding-bottom:120px}
-button,label.btn,label.drop{font:inherit;cursor:pointer}
-button{border:0;background:none;color:inherit;text-align:left}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-
-/* Шапка */
-.top{background:var(--ink);color:var(--milk);padding:max(18px,env(safe-area-inset-top)) 20px 64px}
-.top .in{max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.logo{font-family:var(--d);font-weight:700;font-size:28px;letter-spacing:6px}
-.logo small{display:block;font:400 13px 'Inter',sans-serif;letter-spacing:0;color:var(--wood);margin-top:2px}
-.view{display:inline-flex;align-items:center;height:40px;padding:0 16px;border:1px solid rgba(212,197,185,.4);border-radius:999px;color:var(--milk);text-decoration:none;font-size:14px}
-
-/* Вкладки */
-.wrap{max-width:640px;margin:-40px auto 0;padding:0 16px}
-.tabs{display:flex;gap:4px;padding:5px;background:var(--milk);border:1px solid var(--wood);border-radius:999px;margin-bottom:18px}
-.tab{flex:1;height:46px;border-radius:999px;text-align:center;font-weight:600;font-size:15px;color:var(--soft);transition:background-color .2s,color .2s}
-.tab[aria-selected=true]{background:var(--ink);color:var(--milk)}
-
-/* Разделы меню (полоса сверху) */
-.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 14px}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;height:44px;padding:0 18px;border:1px solid var(--wood);border-radius:999px;background:var(--milk);font-weight:500;font-size:15px;transition:background-color .2s,color .2s}
-.chip[aria-pressed=true]{background:var(--ink);color:var(--milk);border-color:var(--ink)}
-.chip.add{border-style:dashed;background:transparent;color:var(--soft)}
-
-/* Карточки */
-.card{background:var(--milk);border:1px solid var(--wood);border-radius:22px;padding:18px;margin-bottom:16px}
-.card h2{font-family:var(--d);font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
-.lead{font-size:14px;color:var(--soft);margin-bottom:6px}
-.fl{display:block;margin-top:14px;font-size:13px;font-weight:600;color:var(--soft)}
-.fl small{display:block;margin-top:5px;font-weight:400;font-size:12px}
-input,textarea,select{display:block;width:100%;margin-top:6px;padding:11px 14px;border:1px solid var(--wood);border-radius:14px;background:#fff;font:400 16px 'Inter',sans-serif;color:var(--ink)}
-input,select{height:48px}
-input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-offset:0;border-color:var(--ink)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-/* Кнопки */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 18px;border-radius:999px;background:var(--ink);color:var(--milk);font-weight:600;font-size:15px;text-align:center;transition:transform .15s,opacity .15s}
-.btn:active{transform:scale(.97)}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--wood)}
-.btn.danger{background:transparent;color:var(--red);border:1px solid #e3b9b2}
-.btn.sq{width:46px;padding:0}
-.btn.wide{width:100%;height:54px;font-size:16px}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-.row .grow{flex:1}
-
-/* Позиции меню */
-.it{border:1px solid var(--wood);border-radius:18px;background:var(--milk);margin-top:10px;overflow:hidden}
-.it.open{border-color:var(--ink)}
-.ih{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px 10px 10px;min-height:76px}
-.th{flex:none;width:56px;height:56px;border-radius:14px;background:var(--page) center/cover;display:flex;align-items:center;justify-content:center;color:#a8978a}
-.im{flex:1;min-width:0}
-.im b{display:block;font-family:var(--d);font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.im small{font-size:14px;color:var(--soft)}
-.chev{color:var(--soft);transition:transform .25s}
-.it.open .chev{transform:rotate(180deg)}
-.ib{padding:0 14px 16px;border-top:1px solid var(--page)}
-.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:170px;margin-top:14px;border:1.5px dashed var(--wood);border-radius:16px;background:var(--page) center/cover;color:var(--soft);font-size:14px;text-align:center}
-.drop.has{border-style:solid;color:var(--milk);text-shadow:0 1px 6px rgba(0,0,0,.6);justify-content:flex-end;padding-bottom:12px}
-.empty{text-align:center;padding:30px 10px;color:var(--soft);font-size:15px}
-.empty b{display:block;font-family:var(--d);font-size:19px;color:var(--ink);margin-bottom:4px}
-
-/* Панель сохранения: появляется, когда есть изменения */
-#savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 16px max(12px,env(safe-area-inset-bottom));background:rgba(22,21,19,.96);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transform:translateY(110%);transition:transform .3s}
-#savebar.on{transform:none}
-#savebar .in{max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--wood);font-size:14px}
-#savebar .btn{background:var(--milk);color:var(--ink);flex:none}
-#toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,12px);background:var(--milk);color:var(--ink);box-shadow:0 0 0 1px var(--wood);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:30;max-width:90vw;text-align:center}
-#toast.on{opacity:1;transform:translate(-50%,0)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>RISE — управление сайтом</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://googleapis.com" rel="stylesheet">
+  
+  <!-- Подключаем внешние стили админки -->
+  <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
 
-<!-- Шапка -->
-<header class="top"><div class="in">
-  <div class="logo">RISE<small>Управление сайтом</small></div>
-  <a class="view" href="/" target="_blank" rel="noopener">Открыть сайт ↗</a>
-</div></header>
+  <!-- Шапка -->
+  <header class="top">
+    <div class="in">
+      <div class="logo">RISE<small>Управление сайтом</small></div>
+      <a class="view" href="/" target="_blank" rel="noopener">Открыть сайт ↗</a>
+    </div>
+  </header>
 
-<div class="wrap">
-  <!-- Две вкладки: меню и общая информация -->
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-a="tab" data-v="menu" aria-selected="true">Меню</button>
-    <button class="tab" role="tab" data-a="tab" data-v="info" aria-selected="false">Часы и контакты</button>
-  </nav>
-  <!-- Сюда скрипт рисует содержимое вкладки -->
-  <main id="app"><p class="empty">Загрузка…</p></main>
-</div>
+  <div class="wrap">
+    <!-- Вкладки -->
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-a="tab" data-v="menu" aria-selected="true">Меню</button>
+      <button class="tab" role="tab" data-a="tab" data-v="info" aria-selected="false">Часы и контакты</button>
+    </nav>
+    <!-- Сюда скрипт рисует содержимое -->
+    <main id="app"><p class="empty">Загрузка…</p></main>
+  </div>
 
-<!-- Нижняя панель сохранения -->
-<div id="savebar"><div class="in"><span>Есть несохранённые изменения</span><button class="btn" data-a="save" id="saveBtn">Сохранить</button></div></div>
-<div id="toast" role="status" aria-live="polite"></div>
+  <!-- Панель сохранения -->
+  <div id="savebar">
+    <div class="in">
+      <span>Есть несохранённые изменения</span>
+      <button class="btn" data-a="save" id="saveBtn">Сохранить</button>
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
-<script>
-// ===== 1. СОСТОЯНИЕ И ПОМОЩНИКИ =====
-const $ = s => document.querySelector(s);
-let S = null;          // все данные сайта (как в data/content.json)
-let dirty = false;     // есть ли несохранённые изменения
-let tab = 'menu';      // открытая вкладка
-let sel = 0;           // выбранный раздел меню
-let openItem = null;   // раскрытая позиция, например "0:1"
-
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const CAM = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
-
-// Записать значение по адресу, например categories.0.items.1.name
-function setPath(path, v) {
-  const k = path.split('.');
-  let o = S;
-  for (let i = 0; i < k.length - 1; i++) o = o[k[i]];
-  o[k[k.length - 1]] = v;
-}
-function move(arr, i, d) { // переставить элемент
-  const j = i + d;
-  if (j < 0 || j >= arr.length) return false;
-  [arr[i], arr[j]] = [arr[j], arr[i]];
-  return true;
-}
-function mark() { dirty = true; $('#savebar').classList.add('on'); }
-let tt;
-function toast(m) {
-  const t = $('#toast');
-  t.textContent = m; t.classList.add('on');
-  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600);
-}
-
-// ===== 2. ЭЛЕМЕНТЫ ФОРМЫ =====
-const field = (label, path, val, o = {}) =>
-  `<label class="fl">${label}${o.area
-    ? `<textarea data-p="${path}" rows="3">${esc(val)}</textarea>`
-    : `<input data-p="${path}" value="${esc(val)}" ${o.ph ? `placeholder="${esc(o.ph)}"` : ''} ${o.mode ? `inputmode="${o.mode}"` : ''}>`
-  }${o.hint ? `<small>${o.hint}</small>` : ''}</label>`;
-
-const hourSelect = (label, path, val) =>
-  `<label class="fl">${label}<select data-p="${path}" data-n="1">${Array.from({ length: 24 }, (_, h) =>
-    `<option value="${h}" ${Number(val) === h ? 'selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select></label>`;
-
-// ===== 3. ВКЛАДКА «МЕНЮ» =====
-function itemHtml(c, i, it) {
-  const p = `categories.${c}.items.${i}`, key = c + ':' + i, o = openItem === key;
-  const head = `<button class="ih" data-a="tog" data-k="${key}" aria-expanded="${o}">
-      <span class="th" ${it.image ? `style="background-image:url('${esc(it.image)}')"` : ''}>${it.image ? '' : CAM}</span>
-      <span class="im"><b data-live="${p}.name">${esc(it.name || 'Без названия')}</b><small data-live="${p}.price">${esc(it.price)}</small></span>
-      <span class="chev">▾</span></button>`;
-  if (!o) return `<div class="it">${head}</div>`;
-  return `<div class="it open">${head}<div class="ib">
-      <label class="drop ${it.image ? 'has' : ''}" ${it.image ? `style="background-image:linear-gradient(transparent 55%,rgba(0,0,0,.45)),url('${esc(it.image)}')"` : ''}>
-        ${it.image ? '<span>Нажмите, чтобы заменить фото</span>' : CAM + '<span>Добавить фото</span>'}
-        <input type="file" accept="image/*" hidden data-up="${p}.image" data-max="800"></label>
-      ${it.image ? `<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="clr" data-p="${p}.image">Убрать фото</button></div>` : ''}
-      ${field('Название', p + '.name', it.name)}
-      ${field('Описание', p + '.desc', it.desc, { area: true })}
-      ${field('Цена', p + '.price', it.price, { ph: '590 р.' })}
-      <div class="row">
-        <button class="btn ghost sq" data-a="mvItem" data-c="${c}" data-i="${i}" data-d="-1" aria-label="Поднять выше">↑</button>
-        <button class="btn ghost sq" data-a="mvItem" data-c="${c}" data-i="${i}" data-d="1" aria-label="Опустить ниже">↓</button>
-        <button class="btn danger grow" data-a="delItem" data-c="${c}" data-i="${i}">Удалить позицию</button>
-      </div></div></div>`;
-}
-
-function viewMenu() {
-  const cats = S.categories;
-  if (sel >= cats.length) sel = Math.max(0, cats.length - 1);
-  const chips = `<div class="chips">${cats.map((k, i) =>
-    `<button class="chip" aria-pressed="${i === sel}" data-a="sel" data-c="${i}"><span data-live="categories.${i}.title">${esc(k.title || 'Без названия')}</span></button>`).join('')}
-    <button class="chip add" data-a="addCat">+ Раздел</button></div>`;
-  const k = cats[sel];
-  if (!k) return chips + `<div class="card empty"><b>Меню пока пустое</b>Нажмите «+ Раздел», чтобы создать первый.</div>`;
-
-  return chips + `<div class="card">
-      <h2>Раздел</h2><p class="lead">Название видно на сайте во вкладках.</p>
-      ${field('Название', `categories.${sel}.title`, k.title)}
-      ${field('Подпись под названием (по желанию)', `categories.${sel}.subtitle`, k.subtitle, { ph: 'Например: Кухня работает весь день' })}
-      <div class="row">
-        <button class="btn ghost sq" data-a="mvCat" data-c="${sel}" data-d="-1" aria-label="Сдвинуть раздел влево">←</button>
-        <button class="btn ghost sq" data-a="mvCat" data-c="${sel}" data-d="1" aria-label="Сдвинуть раздел вправо">→</button>
-        <button class="btn danger grow" data-a="delCat" data-c="${sel}">Удалить раздел</button>
-      </div></div>
-    <div class="card"><h2>Позиции</h2><p class="lead">Нажмите на позицию, чтобы изменить цену, фото или описание.</p>
-      ${k.items.length ? k.items.map((it, i) => itemHtml(sel, i, it)).join('') : '<div class="empty"><b>Здесь пока пусто</b>Добавьте первую позицию.</div>'}
-      <div class="row"><button class="btn wide" data-a="addItem">+ Добавить позицию</button></div></div>`;
-}
-
-// ===== 4. ВКЛАДКА «ЧАСЫ И КОНТАКТЫ» =====
-function viewInfo() {
-  const c = S.contacts, h = S.hours;
-  return `<div class="card"><h2>Часы работы</h2><p class="lead">По ним на сайте показывается «Открыто» или «Закрыто».</p>
-      <div class="two">${hourSelect('Открываемся', 'hours.open', h.open)}${hourSelect('Закрываемся', 'hours.close', h.close)}</div></div>
-    <div class="card"><h2>Контакты</h2><p class="lead">Если поле пустое, кнопка на сайте не показывается.</p>
-      ${field('WhatsApp', 'contacts.whatsapp', c.whatsapp, { ph: '79001234567', mode: 'tel', hint: 'Только цифры, с кода страны, без плюса.' })}
-      ${field('Instagram', 'contacts.instagram', c.instagram, { ph: 'rise_coffee', hint: 'Логин без @.' })}
-      ${field('Адрес для маршрута', 'contacts.mapQuery', c.mapQuery, { hint: 'Что искать в Яндекс Картах.' })}</div>
-    <div class="card"><h2>Адрес на сайте</h2><p class="lead">Показывается в шапке сайта.</p>
-      ${field('Адрес', 'brand.address', S.brand.address)}</div>`;
-}
-
-function render() {
-  $('#app').innerHTML = tab === 'menu' ? viewMenu() : viewInfo();
-  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.v === tab));
-}
-
-// Подстраховка: если в данных чего-то не хватает, добавляем пустые поля
-function fix() {
-  ['brand', 'hours', 'banner', 'theme', 'about', 'contacts'].forEach(k => S[k] = S[k] || {});
-  S.categories = S.categories || [];
-  S.categories.forEach(k => k.items = k.items || []);
-}
-
-// ===== 5. ДЕЙСТВИЯ =====
-// Ввод текста: пишем прямо в данные и сразу обновляем подписи в списке (без перерисовки, курсор не прыгает)
-document.addEventListener('input', e => {
-  const p = e.target.dataset.p;
-  if (!p || !S) return;
-  const v = e.target.dataset.n ? Number(e.target.value) : e.target.value;
-  setPath(p, v);
-  document.querySelectorAll(`[data-live="${p}"]`).forEach(el => el.textContent = v || (p.endsWith('price') ? '' : 'Без названия'));
-  mark();
-});
-
-document.addEventListener('click', e => {
-  const t = e.target.closest('[data-a]');
-  if (!t || !S) return;
-  const a = t.dataset.a, c = +t.dataset.c, i = +t.dataset.i, d = +t.dataset.d, cats = S.categories;
-
-  if (a === 'save') return save();
-  if (a === 'tab') { tab = t.dataset.v; return render(); }
-  if (a === 'sel') { sel = c; openItem = null; return render(); }
-  if (a === 'tog') { openItem = openItem === t.dataset.k ? null : t.dataset.k; return render(); }
-
-  if (a === 'addCat') {
-    cats.push({ id: 'c' + Date.now().toString(36), title: 'Новый раздел', subtitle: '', items: [] });
-    sel = cats.length - 1; openItem = null;
-  }
-  if (a === 'delCat') {
-    if (!confirm('Удалить раздел вместе со всеми позициями?')) return;
-    cats.splice(sel, 1); sel = Math.max(0, sel - 1); openItem = null;
-  }
-  if (a === 'mvCat') { if (move(cats, c, d)) sel = c + d; }
-  if (a === 'addItem') {
-    cats[sel].items.push({ name: 'Новая позиция', desc: '', price: '000 р.', image: '' });
-    openItem = sel + ':' + (cats[sel].items.length - 1);
-  }
-  if (a === 'delItem') {
-    if (!confirm('Удалить позицию?')) return;
-    cats[c].items.splice(i, 1); openItem = null;
-  }
-  if (a === 'mvItem') { if (move(cats[c].items, i, d)) openItem = c + ':' + (i + d); }
-  if (a === 'clr') setPath(t.dataset.p, '');
-  mark(); render();
-});
-
-// ===== 6. ФОТО =====
-// Перед отправкой уменьшаем фото и превращаем в JPEG: сайт грузится быстрее
-function toJpeg(file, max) {
-  return new Promise((ok, fail) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      const k = Math.min(1, max / Math.max(img.width, img.height));
-      const cv = document.createElement('canvas');
-      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-      const x = cv.getContext('2d');
-      x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);
-      x.drawImage(img, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url);
-      cv.toBlob(b => b ? ok(b) : fail(new Error('Не удалось обработать фото')), 'image/jpeg', 0.82);
-    };
-    img.onerror = () => fail(new Error('Этот файл не открывается как картинка'));
-    img.src = url;
-  });
-}
-
-document.addEventListener('change', async e => {
-  const p = e.target.dataset.up, f = e.target.files && e.target.files[0];
-  if (!p || !f) return;
-  try {
-    toast('Загружаем фото…');
-    const blob = await toJpeg(f, +e.target.dataset.max || 800);
-    const fd = new FormData();
-    fd.append('image', blob, 'photo.jpg');
-    const r = await fetch('/admin/api/upload', { method: 'POST', body: fd });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'Ошибка загрузки');
-    setPath(p, j.url); mark(); render();
-    toast('Фото добавлено. Не забудьте сохранить');
-  } catch (err) { toast(err.message); }
-});
-
-// ===== 7. СОХРАНЕНИЕ И ЗАГРУЗКА =====
-async function save() {
-  const b = $('#saveBtn');
-  b.textContent = 'Сохраняем…';
-  try {
-    const r = await fetch('/admin/api/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(S) });
-    if (!r.ok) throw new Error();
-    dirty = false; $('#savebar').classList.remove('on');
-    toast('Сохранено. Сайт обновлён');
-  } catch (e) { toast('Не удалось сохранить. Попробуйте ещё раз'); }
-  b.textContent = 'Сохранить';
-}
-
-// Предупреждаем, если закрывают вкладку с несохранёнными правками
-addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
-
-fetch('/admin/api/content').then(r => r.json()).then(d => { S = d; fix(); render(); })
-  .catch(() => { $('#app').innerHTML = '<p class="empty">Не удалось загрузить данные. Обновите страницу.</p>'; });
-</script>
+  <!-- Подключаем внешнюю логику админки -->
+  <script src="admin-script.js"></script>
 </body>
 </html>

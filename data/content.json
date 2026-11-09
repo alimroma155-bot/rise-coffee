@@ -49,43 +49,29 @@
           "name": "Завтрак бурито с сёмгой",
           "desc": "Тортилья, сёмга, яйцо, сливочный сыр",
           "price": "590 р.",
-          "image": ""
+          "image": "/uploads/mw9n2viq7e559c8b.jpg",
+          "null": "C:\\fakepath\\завтрак 4.jpg"
         },
         {
-          "name": "Капучино Классический",
+          "name": "круассан ",
           "desc": "Двойной эспрессо, молочная пенка, 250 мл",
           "price": "180 р.",
-          "image": ""
+          "image": "/uploads/mw9n3bcidb41e578.jpg",
+          "null": "C:\\fakepath\\завтрак 3.jpg"
         },
         {
-          "name": "Новая позиция",
+          "name": "Завтрак",
           "desc": "",
-          "price": "000 р.",
-          "image": ""
+          "price": "499 р.",
+          "image": "/uploads/mw9n3ruq8ee70525.jpg",
+          "null": "C:\\fakepath\\завтрак2.jpg"
         },
         {
-          "name": "Новая позиция",
+          "name": "Завтрак",
           "desc": "",
-          "price": "000 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "000 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "000 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "000 р.",
-          "image": ""
+          "price": "600 р.",
+          "image": "/uploads/mw9n4cgn4e7ee9ea.jpg",
+          "null": "C:\\fakepath\\завтрак.jpg"
         }
       ]
     },
@@ -105,7 +91,29 @@
       "id": "drinks",
       "title": "Напитки",
       "subtitle": "",
-      "items": []
+      "items": [
+        {
+          "name": "Тоник юдзу малина",
+          "desc": "",
+          "price": "299 р.",
+          "image": "/uploads/mw9mrrue1e2e2cc6.jpg",
+          "null": "C:\\fakepath\\photo_5445343947044627557_w.jpg"
+        },
+        {
+          "name": "Тоник юдзу гранат",
+          "desc": "",
+          "price": "299 р.",
+          "image": "/uploads/mw9mt5c9b818ba21.jpg",
+          "null": "C:\\fakepath\\photo_5445343947044627558_w.jpg"
+        },
+        {
+          "name": "Тоник юдзу ананас",
+          "desc": "",
+          "price": "299 р.",
+          "image": "/uploads/mw9mtlrk1df32915.jpg",
+          "null": "C:\\fakepath\\photo_5445343947044627556_w.jpg"
+        }
+      ]
     }
   ]
 }
