@@ -2,10 +2,9 @@
   "name": "rise-coffee",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "node server.js",
-    "test": "node --test"
-  },
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
   "dependencies": {
     "express": "^4.21.0",
     "multer": "^2.0.0"

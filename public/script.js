@@ -1,265 +1,238 @@
-// RISE COFFEE — публичный сайт: берёт данные из админки, рисует страницу и включает интерактив
+﻿// RISE COFFEE — публичный сайт: рисует страницу из данных (content.json) и включает интерактив
 (function () {
-  var $ = function (s) {
-    return document.querySelector(s);
-  };
-  var $$ = function (s) {
-    return Array.from(document.querySelectorAll(s));
-  };
+  'use strict';
 
-  // Защита: любой текст из админки превращается в безопасный текст страницы
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[c];
-    });
-  }
-  
-  function pad(n) {
-    return (n < 10 ? "0" : "") + n;
-  }
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
 
-  function isOpenNow(hours, currentHour) {
-    var open = Number(hours.open);
-    var close = Number(hours.close);
+  const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC[c]);
+  const pad = n => (n < 10 ? '0' : '') + n;
+
+  // Разрешаем только свои фото (/uploads/, /img/) и ссылки http(s)
+  const safeUrl = u => (/^(\/uploads\/|\/img\/|https?:\/\/)/.test(u || '') ? u : '');
+  const cssUrl = u => u.replace(/['"()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'));
+
+  function isOpenNow(hours, hour) {
+    const open = Number(hours.open);
+    const close = Number(hours.close);
     if (!Number.isFinite(open) || !Number.isFinite(close)) return false;
-    if (open === close) return true;
-    return open < close
-      ? currentHour >= open && currentHour < close
-      : currentHour >= open || currentHour < close;
-  }
-  
-  // Разрешаем только свои загруженные фото и обычные ссылки http(s)
-  function safeUrl(u) {
-    return /^(\/uploads\/|https?:\/\/)/.test(u || "") ? u : "";
+    if (open === close) return true; // круглосуточно
+    return open < close ? hour >= open && hour < close : hour >= open || hour < close;
   }
 
-  // ===== 1. ОДНА ПОЗИЦИЯ МЕНЮ (КАК У MARSHA) =====
-  function itemHtml(it) {
-    var src = safeUrl(it.image);
-    var pic = src
-      ? '<img src="' +
-        esc(src) +
-        '" alt="' +
-        esc(it.name) +
-        '" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">'
-      : '<svg width="40" height="40" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
-      
+  let CATS = []; // нужно окну с подробностями
+
+  // Картинка с запасным вариантом: если файла нет — прячем арку, а не показываем битую иконку
+  function showPhoto(figure, img, url) {
+    if (!url) return;
+    img.onerror = () => { figure.hidden = true; };
+    img.src = url;
+    figure.hidden = false;
+  }
+
+  // ===== 1. ШАБЛОНЫ =====
+  function itemHtml(it, ci, ii) {
+    const src = safeUrl(it.image);
+    const pic = src
+      ? `<img src="${esc(src)}" alt="${esc(it.name)}" loading="lazy" decoding="async">`
+      : '<svg aria-hidden="true"><use href="#cup"/></svg>';
     return (
-      '<div class="it">' +
-        '<span class="th">' + pic + '</span>' +
+      `<button class="it" type="button" data-c="${ci}" data-i="${ii}">` +
+        `<span class="th${src ? '' : ' empty'}">${pic}${it.isNew ? '<span class="badge">Новинка</span>' : ''}</span>` +
         '<span class="tx">' +
-          '<span class="n">' + esc(it.name) + '</span>' +
-          '<span class="p">' + esc(it.price) + '</span>' +
+          `<span class="n">${esc(it.name)}</span>` +
+          `<span class="p">${esc(it.price)}</span>` +
         '</span>' +
-      '</div>'
+      '</button>'
     );
   }
 
-  // Строка в блоке «Контакты»
-  function linkRow(href, title, sub) {
-    return (
-      '<a class="cr" href="' +
-      esc(href) +
-      '" target="_blank" rel="noopener"><span>' +
-      esc(title) +
-      "<small>" +
-      esc(sub) +
-      '</small></span><svg width="20" height="20"><use href="#go"/></svg></a>'
-    );
-  }
+  const linkRow = (href, title) =>
+    `<a class="cr" href="${esc(href)}" target="_blank" rel="noopener">${esc(title)}</a>`;
 
-  // ===== 2. ОТРИСОВКА СТРАНИЦЫ ИЗ ДАННЫХ =====
+  // ===== 2. ОТРИСОВКА =====
   function render(d) {
-    var b = d.brand || {},
-      a = d.about || {},
-      t = d.theme || {},
-      c = d.contacts || {};
+    const b = d.brand || {};
+    const a = d.about || {};
+    const c = d.contacts || {};
+    const h = d.hours || {};
+    CATS = Array.isArray(d.categories) ? d.categories : [];
 
-    // Цвета сайта (меняются в админке)
-    ["ink", "milk", "wood"].forEach(function (k) {
-      if (/^#[0-9a-f]{6}$/i.test(t[k]))
-        document.documentElement.style.setProperty("--" + k, t[k]);
-    });
+    // Первый экран
+    document.title = (b.name || 'RISE') + ' COFFEE';
+    $('#brandName').textContent = b.name || '';
+    $('#tagline').textContent = b.tagline || '';
+    $('#address').textContent = b.address || '';
+    $('#foot').textContent = '© ' + (b.name || '') + ' COFFEE';
 
-    // Шапка
-    document.title = (b.name || "RISE") + " COFFEE";
-    $("#brandName").textContent = b.name || "";
-    $("#tagline").textContent = b.tagline || "";
-    $("#address").textContent = b.address || "";
-    $("#foot").textContent = (b.name || "") + " COFFEE";
+    const open = Number(h.open);
+    const close = Number(h.close);
+    $('#hours').textContent = open === close ? 'Круглосуточно' : `Ежедневно с ${open}:00 до ${close}:00`;
 
-    // Фото в шапке (если загружено)
-    var bg = safeUrl(d.banner && d.banner.image);
-    if (bg) {
-      var st = $("#top").style;
-      st.backgroundImage =
-        'linear-gradient(rgba(22,21,19,.62),rgba(22,21,19,.82)),url("' +
-        bg +
-        '")';
-      st.backgroundSize = "cover";
-      st.backgroundPosition = "center";
+    const phoneRaw = String(c.whatsapp || '').trim();
+    const phoneDigits = phoneRaw.replace(/\D/g, '');
+    if (phoneDigits) {
+      const link = $('#phone');
+      link.hidden = false;
+      link.href = 'tel:' + phoneDigits;
+      link.textContent = phoneRaw;
     }
 
-    // Вкладки и разделы меню
-    var cats = d.categories || [];
-    $("#chips").innerHTML = cats
-      .map(function (k, i) {
+    if (c.mapQuery) {
+      const route = $('#routeBtn');
+      route.href = 'https://yandex.ru/maps/?text=' + encodeURIComponent(c.mapQuery);
+      route.hidden = false;
+    }
+
+    showPhoto($('#heroArch'), $('#heroImg'), safeUrl(d.banner && d.banner.image));
+
+    // Вкладки разделов и сами разделы (читаем d.categories[].items[])
+    $('#chips').innerHTML = CATS
+      .map((k, i) => `<button class="chip" type="button" data-t="${esc(k.id)}"${i === 0 ? ' aria-current="true"' : ''}>${esc(k.title)}</button>`)
+      .join('');
+
+    $('#cats').innerHTML = CATS
+      .map((k, ci) => {
+        const items = Array.isArray(k.items) ? k.items : [];
         return (
-          '<button class="chip" data-t="' +
-          esc(k.id) +
-          '"' +
-          (i === 0 ? ' aria-current="true"' : "") +
-          ">" +
-          esc(k.title) +
-          "</button>"
-        );
-      })
-      .join("");
-      
-    $("#cats").innerHTML = cats
-      .map(function (k) {
-        var items = k.items || [];
-        return (
-          '<div class="cat" id="' + esc(k.id) + '" data-cat>' +
-            '<h2>' + esc(k.title) + '</h2>' +
-            (k.subtitle ? '<p class="sub">' + esc(k.subtitle) + '</p>' : '') +
-            '<div class="items-grid">' +
-              (items.length ? items.map(itemHtml).join("") : '<p class="sub">Скоро здесь появится меню</p>') +
+          `<div class="cat" id="${esc(k.id)}" data-cat>` +
+            '<div class="cat-head">' +
+              `<h2>${esc(k.title)}</h2>` +
+              (k.subtitle ? `<p class="sub">${esc(k.subtitle)}</p>` : '') +
             '</div>' +
+            (items.length
+              ? `<div class="items-grid">${items.map((it, ii) => itemHtml(it, ci, ii)).join('')}</div>`
+              : '<p class="soon">Скоро здесь появится меню</p>') +
           '</div>'
         );
       })
-      .join("");
+      .join('');
+
+    $('#note').hidden = !CATS.some(k => (k.items || []).some(it => String(it.desc || '').trim()));
 
     // О нас
-    $("#aboutTitle").textContent = a.title || "О нас";
-    $("#aboutText").textContent = a.text || "";
-    $("#facts").innerHTML = (a.facts || [])
-      .filter(function (f) {
-        return f.title || f.text;
-      })
-      .map(function (f) {
-        return (
-          '<div class="f"><b>' +
-          esc(f.title) +
-          "</b><span>" +
-          esc(f.text) +
-          "</span></div>"
-        );
-      })
-      .join("");
+    $('#aboutTitle').textContent = a.title || 'О нас';
+    $('#aboutText').textContent = a.text || '';
+    const aboutSrc = safeUrl(a.image);
+    showPhoto($('#aboutArch'), $('#aboutImg'), aboutSrc);
+    $('#aboutIn').classList.toggle('no-photo', !aboutSrc);
+    $('#facts').innerHTML = (a.facts || [])
+      .filter(f => f.title || f.text)
+      .map(f => `<div class="f"><b>${esc(f.title)}</b><span>${esc(f.text)}</span></div>`)
+      .join('');
 
     // Контакты
-    var rows = [];
-    var phone = String(c.whatsapp || "").replace(/\D/g, "");
-    var insta = String(c.instagram || "")
-      .replace(/^.*instagram\.com\//i, "")
-      .replace(/^@/, "")
-      .split(/[/?]/)[0];
-      
-    if (phone) rows.push(linkRow("https://wa.me/" + phone, "WhatsApp", "Написать нам"));
-    if (insta) rows.push(linkRow("https://instagram.com/" + encodeURIComponent(insta), "Instagram", "Наши новости"));
-    if (c.mapQuery) rows.push(linkRow("https://yandex.ru/maps/?text=" + encodeURIComponent(c.mapQuery), "Проложить маршрут", b.address || ""));
-    
-    $("#contactsList").innerHTML = rows.join("");
+    const rows = [];
+    const insta = String(c.instagram || '').replace(/^.*instagram\.com\//i, '').replace(/^@/, '').split(/[/?]/)[0];
+    if (phoneDigits) rows.push(linkRow('https://wa.me/' + phoneDigits, 'WhatsApp'));
+    if (insta) rows.push(linkRow('https://instagram.com/' + encodeURIComponent(insta), 'Instagram'));
+    if (c.mapQuery) rows.push(linkRow('https://yandex.ru/maps/?text=' + encodeURIComponent(c.mapQuery), 'Проложить маршрут'));
+    $('#contactsList').innerHTML = rows.join('');
+    $('#contacts').hidden = !rows.length;
   }
 
   // ===== 3. ИНТЕРАКТИВ =====
   function wire(d) {
-    var toast = $("#toast"),
-      chips = $("#chips"),
-      tt;
+    const toast = $('#toast');
+    const dlg = $('#dlg');
+    const chips = $('#chips');
+    let timer;
 
-    function say(m) {
-      toast.textContent = m;
-      toast.classList.add("on");
-      clearTimeout(tt);
-      tt = setTimeout(function () {
-        toast.classList.remove("on");
-      }, 1800);
+    function say(msg) {
+      toast.textContent = msg;
+      toast.classList.add('on');
+      clearTimeout(timer);
+      timer = setTimeout(() => toast.classList.remove('on'), 1800);
     }
 
-    $$("[data-t]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var s = document.getElementById(btn.dataset.t);
-        if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Прокрутка: вкладки, кнопка «Смотреть меню», «наверх»
+    $$('[data-t]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.t);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
 
-    function spy(sel, btnSel, margin, after) {
-      if (!("IntersectionObserver" in window)) return;
-      var io = new IntersectionObserver(
-        function (es) {
-          es.forEach(function (e) {
-            if (!e.isIntersecting) return;
-            $$(btnSel).forEach(function (b) {
-              var on = b.dataset.t === e.target.id;
-              b.setAttribute("aria-current", on);
-              if (on && after) after(b);
-            });
+    // Подсветка вкладки текущего раздела
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          $$('.chip').forEach(b => {
+            const on = b.dataset.t === e.target.id;
+            b.setAttribute('aria-current', String(on));
+            if (on) chips.scrollTo({ left: b.offsetLeft - 20, behavior: 'smooth' });
           });
-        },
-        { rootMargin: margin },
-      );
-      $$(sel).forEach(function (s) {
-        io.observe(s);
-      });
+        });
+      }, { rootMargin: '-20% 0px -70% 0px' });
+      $$('[data-cat]').forEach(s => io.observe(s));
     }
-    spy("[data-cat]", ".chip", "-30% 0px -65% 0px", function (b) {
-      try {
-        chips.scrollTo({ left: b.offsetLeft - 20, behavior: "smooth" });
-      } catch (e) {}
+
+    // Кнопка «наверх»
+    const up = $('#up');
+    const onScroll = () => up.classList.toggle('on', window.scrollY > 700);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Окно с подробностями блюда
+    $('#cats').addEventListener('click', e => {
+      const card = e.target.closest('.it');
+      if (!card || !dlg.showModal) return;
+      const it = (CATS[Number(card.dataset.c)] || {}).items?.[Number(card.dataset.i)];
+      if (!it) return;
+
+      const src = safeUrl(it.image);
+      $('#dlgImg').style.backgroundImage = src ? `url("${cssUrl(src)}")` : '';
+      $('#dlgBody').classList.toggle('no-img', !src);
+      $('#dlgName').textContent = it.name || '';
+      $('#dlgPrice').textContent = it.price || '';
+      $('#dlgDesc').textContent = it.desc || '';
+      $('#dlgDesc').hidden = !String(it.desc || '').trim();
+      dlg.showModal();
     });
-    spy("[data-main]", ".nb", "-45% 0px -50% 0px");
+    dlg.addEventListener('click', e => {
+      if (e.target === dlg || e.target.closest('[data-close]')) dlg.close();
+    });
 
-    var h = d.hours || {},
-      o = Number(h.open),
-      c = Number(h.close);
-    var hour = new Date().getHours(),
-      isOpen = isOpenNow(h, hour);
-    var badge = $("#status");
-    badge.classList.toggle("open", isOpen);
-    badge.lastChild.textContent = isOpen
-      ? "Открыто до " + pad(c) + ":00"
-      : "Откроемся в " + pad(o) + ":00";
+    // Статус «открыто / закрыто»
+    const h = d.hours || {};
+    const open = isOpenNow(h, new Date().getHours());
+    $('#status').classList.toggle('open', open);
+    $('#status span').textContent = open
+      ? 'Открыто до ' + pad(Number(h.close)) + ':00'
+      : 'Откроемся в ' + pad(Number(h.open)) + ':00';
 
-    $("#addr").addEventListener("click", function () {
-      var text = String((d.brand || {}).address || "").replace("•", ",");
-      try {
-        navigator.clipboard.writeText(text).then(
-          function () { say("Адрес скопирован"); },
-          function () { say(text); }
-        );
-      } catch (e) {
-        say(text);
-      }
+    // Копирование адреса
+    $('#addr').addEventListener('click', () => {
+      const text = String((d.brand || {}).address || '').replace('•', ',');
+      if (!navigator.clipboard) return say(text);
+      navigator.clipboard.writeText(text).then(() => say('Адрес скопирован'), () => say(text));
     });
   }
 
-  // ===== 4. ЗАПУСК =====
   function start(d) {
     render(d);
     wire(d);
   }
 
-  var raw = $("#data").textContent.trim();
-  if (raw.charAt(0) === "{") {
-    start(JSON.parse(raw)); 
-  } else {
-    fetch("/api/content")
-      .then(function (r) { return r.json(); })
+  // ===== 4. ЗАПУСК =====
+  function loadFromApi() {
+    fetch('/api/content')
+      .then(r => r.json())
       .then(start)
-      .catch(function () {
+      .catch(() => {
         document.body.insertAdjacentHTML(
-          "afterbegin",
-          '<p style="padding:20px;color:#fff;text-align:center">Запустите сайт командой npm start</p>'
+          'afterbegin',
+          '<p style="padding:20px;text-align:center">Запустите сайт командой npm start</p>'
         );
       });
+  }
+
+  const raw = ($('#data').textContent || '').trim();
+  if (raw.charAt(0) === '{') {
+    try { start(JSON.parse(raw)); } catch (e) { loadFromApi(); }
+  } else {
+    loadFromApi();
   }
 })();

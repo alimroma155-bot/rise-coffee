@@ -1,21 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>RISE — управление сайтом</title>
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <!-- Подключаем внешние стили админки -->
   <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
-
-  <!-- Шапка -->
   <header class="top">
     <div class="in">
       <div class="logo">RISE<small>Управление сайтом</small></div>
@@ -24,25 +19,21 @@
   </header>
 
   <div class="wrap">
-    <!-- Вкладки -->
     <nav class="tabs" role="tablist">
-      <button class="tab" role="tab" data-a="tab" data-v="menu" aria-selected="true">Меню</button>
-      <button class="tab" role="tab" data-a="tab" data-v="info" aria-selected="false">Часы и контакты</button>
+      <button class="tab" type="button" role="tab" data-a="tab" data-v="menu" aria-selected="true">Меню</button>
+      <button class="tab" type="button" role="tab" data-a="tab" data-v="info" aria-selected="false">Часы и контакты</button>
     </nav>
-    <!-- Сюда скрипт рисует содержимое -->
     <main id="app"><p class="empty">Загрузка…</p></main>
   </div>
 
-  <!-- Панель сохранения -->
   <div id="savebar">
     <div class="in">
       <span>Есть несохранённые изменения</span>
-      <button class="btn" data-a="save" id="saveBtn">Сохранить</button>
+      <button class="btn" type="button" data-a="save" id="saveBtn">Сохранить</button>
     </div>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <!-- Подключаем внешнюю логику админки -->
   <script src="admin-script.js"></script>
 </body>
 </html>

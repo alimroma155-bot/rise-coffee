@@ -9,12 +9,12 @@
     "close": 22
   },
   "banner": {
-    "image": "/uploads/mw98z8mcbc4f9ffb.jpg"
+    "image": "/img/hero.jpg"
   },
   "theme": {
-    "ink": "#161513",
-    "milk": "#F7F4ED",
-    "wood": "#B89A62"
+    "ink": "#1D1815",
+    "milk": "#FFFFFF",
+    "wood": "#B08B5E"
   },
   "about": {
     "title": "О нас",
@@ -32,7 +32,8 @@
         "title": "Весь день",
         "text": "Работает кухня"
       }
-    ]
+    ],
+    "image": "/img/about.jpg"
   },
   "contacts": {
     "whatsapp": "",
@@ -52,8 +53,8 @@
           "image": "/uploads/mw9n2viq7e559c8b.jpg"
         },
         {
-          "name": "круассан ",
-          "desc": "Двойной эспрессо, молочная пенка, 250 мл",
+          "name": "Круассан",
+          "desc": "",
           "price": "180 р.",
           "image": "/uploads/mw9n3bcidb41e578.jpg"
         },
