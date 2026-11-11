@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --ink: #161513;
   --milk: #FBF9F6;
   --wood: #D4C5B9;
@@ -114,18 +114,17 @@ button {
 
 .chips {
   display: flex;
+  flex-wrap: wrap;          /* разделы переносятся на вторую строку, а не уезжают за экран */
   gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding: 2px 2px 14px;
-}
-
-.chips::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .chip {
-  flex: none;
+  flex: 0 0 auto;           /* кнопки не сжимаются */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 44px;
   padding: 0 18px;
   border: 1px solid var(--wood);
@@ -133,6 +132,7 @@ button {
   background: var(--milk);
   font-weight: 500;
   font-size: 15px;
+  white-space: nowrap;
   transition: background-color .2s, color .2s;
 }
 
@@ -143,9 +143,20 @@ button {
 }
 
 .chip.add {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  min-width: max-content;
+  padding: 0 18px;
   border-style: dashed;
   background: transparent;
   color: var(--soft);
+}
+
+/* Кнопка «+ Раздел» никогда не заливается чёрным */
+.chip.add[aria-pressed=true] {
+  background: transparent;
+  color: var(--soft);
+  border-color: var(--wood);
 }
 
 .card {

@@ -1,4 +1,4 @@
-// RISE COFFEE — публичный сайт: берёт данные из админки, рисует страницу и включает интерактив
+﻿// RISE COFFEE — публичный сайт: берёт данные из админки, рисует страницу и включает интерактив
 (function () {
   var $ = function (s) {
     return document.querySelector(s);
@@ -7,7 +7,6 @@
     return Array.from(document.querySelectorAll(s));
   };
 
-  // Защита: любой текст из админки превращается в безопасный текст страницы
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return {
@@ -19,17 +18,16 @@
       }[c];
     });
   }
-  
+
   function pad(n) {
     return (n < 10 ? "0" : "") + n;
   }
-  
-  // Разрешаем только свои загруженные фото и обычные ссылки http(s)
+
   function safeUrl(u) {
     return /^(\/uploads\/|https?:\/\/)/.test(u || "") ? u : "";
   }
 
-  // ===== 1. ОДНА ПОЗИЦИЯ МЕНЮ (КАК У MARSHA) =====
+  // ===== 1. ОДНА ПОЗИЦИЯ МЕНЮ =====
   function itemHtml(it) {
     var src = safeUrl(it.image);
     var pic = src
@@ -39,7 +37,7 @@
         esc(it.name) +
         '" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">'
       : '<svg width="40" height="40" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
-      
+
     return (
       '<div class="it">' +
         '<span class="th">' + pic + '</span>' +
@@ -51,7 +49,6 @@
     );
   }
 
-  // Строка в блоке «Контакты»
   function linkRow(href, title, sub) {
     return (
       '<a class="cr" href="' +
@@ -71,20 +68,18 @@
       t = d.theme || {},
       c = d.contacts || {};
 
-    // Цвета сайта (меняются в админке)
     ["ink", "milk", "wood"].forEach(function (k) {
-      if (/^#[0-9a-f]{6}$/i.test(t[k]))
+      if (/^#[0-9a-f]{6}$/i.test(t[k])) {
         document.documentElement.style.setProperty("--" + k, t[k]);
+      }
     });
 
-    // Шапка
     document.title = (b.name || "RISE") + " COFFEE";
     $("#brandName").textContent = b.name || "";
     $("#tagline").textContent = b.tagline || "";
     $("#address").textContent = b.address || "";
     $("#foot").textContent = (b.name || "") + " COFFEE";
 
-    // Фото в шапке (если загружено)
     var bg = safeUrl(d.banner && d.banner.image);
     if (bg) {
       var st = $("#top").style;
@@ -96,7 +91,6 @@
       st.backgroundPosition = "center";
     }
 
-    // Вкладки и разделы меню
     var cats = d.categories || [];
     $("#chips").innerHTML = cats
       .map(function (k, i) {
@@ -111,7 +105,7 @@
         );
       })
       .join("");
-      
+
     $("#cats").innerHTML = cats
       .map(function (k) {
         var items = k.items || [];
@@ -120,14 +114,15 @@
             '<h2>' + esc(k.title) + '</h2>' +
             (k.subtitle ? '<p class="sub">' + esc(k.subtitle) + '</p>' : '') +
             '<div class="items-grid">' +
-              (items.length ? items.map(itemHtml).join("") : '<p class="sub">Скоро здесь появится меню</p>') +
+              (items.length
+                ? items.map(itemHtml).join("")
+                : '<p class="sub">Скоро здесь появится меню</p>') +
             '</div>' +
           '</div>'
         );
       })
       .join("");
 
-    // О нас
     $("#aboutTitle").textContent = a.title || "О нас";
     $("#aboutText").textContent = a.text || "";
     $("#facts").innerHTML = (a.facts || [])
@@ -145,18 +140,35 @@
       })
       .join("");
 
-    // Контакты
     var rows = [];
     var phone = String(c.whatsapp || "").replace(/\D/g, "");
     var insta = String(c.instagram || "")
       .replace(/^.*instagram\.com\//i, "")
       .replace(/^@/, "")
-      .split(/[/?]/)[0];
-      
-    if (phone) rows.push(linkRow("https://wa.me" + phone, "WhatsApp", "Написать нам"));
-    if (insta) rows.push(linkRow("https://instagram.com" + encodeURIComponent(insta), "Instagram", "Наши новости"));
-    if (c.mapQuery) rows.push(linkRow("https://yandex.ru" + encodeURIComponent(c.mapQuery), "Проложить маршрут", b.address || ""));
-    
+      .split(/[/?]/);
+
+    if (phone) {
+      rows.push(linkRow("https://wa.me" + phone, "WhatsApp", "Написать нам"));
+    }
+    if (insta) {
+      rows.push(
+        linkRow(
+          "https://instagram.com" + encodeURIComponent(insta),
+          "Instagram",
+          "Наши новости"
+        )
+      );
+    }
+    if (c.mapQuery) {
+      rows.push(
+        linkRow(
+          "https://yandex.ru" + encodeURIComponent(c.mapQuery),
+          "Проложить маршрут",
+          b.address || ""
+        )
+      );
+    }
+
     $("#contactsList").innerHTML = rows.join("");
   }
 
@@ -175,6 +187,28 @@
       }, 1800);
     }
 
+    function fitChips() {
+      if (!chips) return;
+      var btns = $$(".chip");
+      if (window.innerWidth >= 768) {
+        btns.forEach(function (c) {
+          c.style.width = "";
+          c.style.flex = "";
+        });
+        return;
+      }
+      var sheet = $(".sheet");
+      var w = sheet ? sheet.clientWidth : document.documentElement.clientWidth;
+      var exactW = Math.floor((w - 60) / 4);
+      btns.forEach(function (c) {
+        c.style.flex = "0 0 " + exactW + "px";
+        c.style.width = exactW + "px";
+      });
+    }
+
+    fitChips();
+    window.addEventListener("resize", fitChips);
+
     $$("[data-t]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var s = document.getElementById(btn.dataset.t);
@@ -188,22 +222,25 @@
         function (es) {
           es.forEach(function (e) {
             if (!e.isIntersecting) return;
-            $$(btnSel).forEach(function (b) {
+            $$(btnSel).forEach(function (b, idx) {
               var on = b.dataset.t === e.target.id;
               b.setAttribute("aria-current", on);
-              if (on && after) after(b);
+              if (on && after) after(b, idx);
             });
           });
         },
-        { rootMargin: margin },
+        { rootMargin: margin }
       );
       $$(sel).forEach(function (s) {
         io.observe(s);
       });
     }
-    spy("[data-cat]", ".chip", "-30% 0px -65% 0px", function (b) {
+
+    spy("[data-cat]", ".chip", "-30% 0px -65% 0px", function (b, idx) {
       try {
-        chips.scrollTo({ left: b.offsetLeft - 20, behavior: "smooth" });
+        var pageStartIdx = Math.floor(idx / 4) * 4;
+        var targetBtn = $$(".chip")[pageStartIdx] || b;
+        chips.scrollTo({ left: targetBtn.offsetLeft - 20, behavior: "smooth" });
       } catch (e) {}
     });
     spy("[data-main]", ".nb", "-45% 0px -50% 0px");
@@ -223,8 +260,12 @@
       var text = String((d.brand || {}).address || "").replace("•", ",");
       try {
         navigator.clipboard.writeText(text).then(
-          function () { say("Адрес скопирован"); },
-          function () { say(text); }
+          function () {
+            say("Адрес скопирован");
+          },
+          function () {
+            say(text);
+          }
         );
       } catch (e) {
         say(text);
@@ -240,10 +281,12 @@
 
   var raw = $("#data").textContent.trim();
   if (raw.charAt(0) === "{") {
-    start(JSON.parse(raw)); 
+    start(JSON.parse(raw));
   } else {
     fetch("/api/content")
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        return r.json();
+      })
       .then(start)
       .catch(function () {
         document.body.insertAdjacentHTML(
