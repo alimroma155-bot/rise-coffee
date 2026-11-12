@@ -1,335 +1,455 @@
-const $ = s => document.querySelector(s);
-let S = null;
-let dirty = false;
-let tab = 'menu';
-let sel = 0;
-let openItem = null;
+﻿// RISE COFFEE — панель управления сайтом
 
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;'
-}[c]));
+const $ = (selector) => document.querySelector(selector);
 
-const CAM = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+// ===== СОСТОЯНИЕ ПРИЛОЖЕНИЯ =====
+let contentData = null;
+let hasUnsavedChanges = false;
+let currentTab = 'menu';
+let selectedCategoryIndex = 0;
+let openItemId = null;
 
-function toast(t) {
-  const el = $('#toast');
-  el.textContent = t;
-  el.classList.add('on');
-  clearTimeout(window.tT);
-  window.tT = setTimeout(() => el.classList.remove('on'), 2500);
+// ===== УТИЛИТЫ =====
+function escapeHtml(str) {
+  const text = String(str == null ? '' : str);
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return text.replace(/[&<>"']/g, (char) => map[char]);
 }
 
-function updSave() {
-  $('#savebar').classList.toggle('on', dirty);
+const CAMERA_ICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+
+function showToast(message) {
+  const toastEl = $('#toast');
+  toastEl.textContent = message;
+  toastEl.classList.add('on');
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => toastEl.classList.remove('on'), 2500);
 }
 
-function toJpeg(file, maxSide) {
+function markDirty() {
+  hasUnsavedChanges = true;
+  updateSaveBar();
+}
+
+function updateSaveBar() {
+  $('#savebar').classList.toggle('on', hasUnsavedChanges);
+}
+
+// ===== ОБРАБОТКА ИЗОБРАЖЕНИЙ =====
+async function convertToJpeg(file, maxSize) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    const url = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+
     image.onload = () => {
       try {
-        const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+        const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
         const canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
         canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Не удалось обработать фото');
+        
         context.fillStyle = '#fff';
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => {
-          if (blob) resolve(blob);
-          else reject(new Error('Не удалось обработать фото'));
-        }, 'image/jpeg', 0.85);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Не удалось обработать фото'));
+          },
+          'image/jpeg',
+          0.85
+        );
       } catch (error) {
         reject(error);
       } finally {
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(objectUrl);
       }
     };
+
     image.onerror = () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
       reject(new Error('Не удалось открыть выбранное фото'));
     };
-    image.src = url;
+
+    image.src = objectUrl;
   });
 }
 
-async function responseError(response) {
+async function getErrorMessage(response) {
   try {
     const body = await response.json();
     if (body.error) return body.error;
-  } catch (e) {}
+  } catch {}
   return `HTTP ${response.status}`;
 }
 
-function setTab(v) {
-  tab = v;
-  document.querySelectorAll('[data-a="tab"]').forEach(b => {
-    b.setAttribute('aria-selected', b.getAttribute('data-v') === v);
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('[data-a="tab"]').forEach((btn) => {
+    btn.setAttribute('aria-selected', String(btn.getAttribute('data-v') === tabName));
   });
   render();
 }
 
-async function load() {
+// ===== ЗАГРУЗКА ДАННЫХ С СЕРВЕРА =====
+async function loadContent() {
   try {
-    const r = await fetch('/admin/api/content');
-    if (!r.ok) throw new Error(await responseError(r));
-    S = await r.json();
-    if (!Array.isArray(S.categories)) S.categories = [];
-    if (!S.brand) S.brand = {};
-    if (!S.hours) S.hours = { open: 8, close: 22 };
+    const response = await fetch('/admin/api/content');
+    if (!response.ok) throw new Error(await getErrorMessage(response));
+    
+    contentData = await response.json();
+    
+    if (!Array.isArray(contentData.categories)) {
+      contentData.categories = [];
+    }
+    if (!contentData.brand) {
+      contentData.brand = {};
+    }
+    if (!contentData.hours) {
+      contentData.hours = { open: 8, close: 22 };
+    }
+    
     render();
-  } catch (e) {
-    console.error('Ошибка загрузки:', e);
-    $('#app').innerHTML = `<p class="empty"><b>Ошибка</b>Не удалось загрузить данные: ${esc(e.message)}. Обновите страницу.</p>`;
+  } catch (error) {
+    console.error('Ошибка загрузки:', error);
+    $('#app').innerHTML = `<p class="empty"><b>Ошибка</b>Не удалось загрузить данные: ${escapeHtml(error.message)}. Обновите страницу.</p>`;
   }
 }
-function render() {
-  if (!S) return;
-  const h = $('#app');
 
-  if (tab === 'info') {
-    h.innerHTML = `
+// ===== РЕНДЕРИНГ ИНТЕРФЕЙСА =====
+function render() {
+  if (!contentData) return;
+
+  const appContainer = $('#app');
+
+  // Вкладка "Часы и контакты"
+  if (currentTab === 'info') {
+    appContainer.innerHTML = `
       <div class="card">
         <h2>Часы и контакты</h2>
-        <label class="fl">Название бренда<input type="text" id="i_brand" value="${esc(S.brand?.name)}"></label>
-        <label class="fl">Слоган<input type="text" id="i_tag" value="${esc(S.brand?.tagline)}"></label>
-        <label class="fl">Адрес<input type="text" id="i_address" value="${esc(S.brand?.address)}"></label>
+        <label class="fl">Название бренда<input type="text" id="i_brand" value="${escapeHtml(contentData.brand?.name || '')}"></label>
+        <label class="fl">Слоган<input type="text" id="i_tag" value="${escapeHtml(contentData.brand?.tagline || '')}"></label>
+        <label class="fl">Адрес<input type="text" id="i_address" value="${escapeHtml(contentData.brand?.address || '')}"></label>
         <div class="two">
-          <label class="fl">Открытие (ч)<input type="number" id="i_open" value="${S.hours?.open || 8}"></label>
-          <label class="fl">Закрытие (ч)<input type="number" id="i_close" value="${S.hours?.close || 22}"></label>
+          <label class="fl">Открытие (ч)<input type="number" id="i_open" value="${contentData.hours?.open || 8}"></label>
+          <label class="fl">Закрытие (ч)<input type="number" id="i_close" value="${contentData.hours?.close || 22}"></label>
         </div>
       </div>`;
 
-    $('#i_brand').oninput = e => { S.brand.name = e.target.value; dirty = true; updSave(); };
-    $('#i_tag').oninput = e => { S.brand.tagline = e.target.value; dirty = true; updSave(); };
-    $('#i_address').oninput = e => { S.brand.address = e.target.value; dirty = true; updSave(); };
-    $('#i_open').oninput = e => { S.hours.open = parseInt(e.target.value) || 8; dirty = true; updSave(); };
-    $('#i_close').oninput = e => { S.hours.close = parseInt(e.target.value) || 22; dirty = true; updSave(); };
+    $('#i_brand').oninput = (e) => { contentData.brand.name = e.target.value; markDirty(); };
+    $('#i_tag').oninput = (e) => { contentData.brand.tagline = e.target.value; markDirty(); };
+    $('#i_address').oninput = (e) => { contentData.brand.address = e.target.value; markDirty(); };
+    $('#i_open').oninput = (e) => { contentData.hours.open = parseInt(e.target.value) || 8; markDirty(); };
+    $('#i_close').oninput = (e) => { contentData.hours.close = parseInt(e.target.value) || 22; markDirty(); };
     return;
   }
 
-  if (sel >= S.categories.length) sel = Math.max(0, S.categories.length - 1);
-  const currentCategory = S.categories[sel];
+  // Вкладка "Меню"
+  if (selectedCategoryIndex >= contentData.categories.length) {
+    selectedCategoryIndex = Math.max(0, contentData.categories.length - 1);
+  }
 
-  let catsHtml = S.categories.map((c, i) => `
-    <button class="chip" data-a="cat" data-i="${i}" aria-pressed="${sel === i}">${esc(c.title)}</button>
-  `).join('');
-  catsHtml += '<button class="chip add" data-a="add-cat">+ Раздел</button>';
+  const hasCategories = contentData.categories.length > 0;
 
-  let itemsHtml = '';
-  if (currentCategory && currentCategory.items) {
-    itemsHtml = currentCategory.items.map((it, i) => {
-      const id = `${sel}:${i}`;
-      const isOpen = openItem === id;
-      const bg = it.image ? `style="background-image:url('${esc(it.image)}')"` : '';
+  if (!hasCategories) {
+    appContainer.innerHTML = `
+      <p class="empty">
+        <b>Меню пусто</b>
+        Добавьте первый раздел, чтобы начать работу.
+      </p>
+      <div class="chips">
+        <button class="chip add" data-a="add-cat">+ Раздел</button>
+      </div>`;
+    return;
+  }
+
+  const currentCategory = contentData.categories[selectedCategoryIndex];
+  const items = currentCategory.items || [];
+
+  // Кнопки категорий
+  const categoryChipsHtml = contentData.categories
+    .map((cat, index) => {
+      const isActive = index === selectedCategoryIndex;
+      return `<button class="chip" data-a="cat" data-i="${index}" aria-pressed="${isActive}">${escapeHtml(cat.title)}</button>`;
+    })
+    .join('');
+
+  // Карточки товаров
+  const itemsHtml = items
+    .map((item, index) => {
+      const itemId = `${selectedCategoryIndex}:${index}`;
+      const isOpen = openItemId === itemId;
+      const imageUrl = item.image || '';
 
       return `
-        <div class="it ${isOpen ? 'open' : ''}">
-          <button class="ih" data-a="toggle" data-id="${id}">
-            <div class="th" ${bg}>${it.image ? '' : CAM}</div>
-            <div class="im"><b>${esc(it.name || 'Без названия')}</b><small>${esc(it.price)}</small></div>
-            <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></polyline></svg>
+        <div class="it ${isOpen ? 'open' : ''}" data-item-container="${itemId}">
+          <button class="ih" data-toggle-item="${itemId}">
+            <span class="th" style="${imageUrl ? `background-image:url('${escapeHtml(imageUrl)}')` : ''}">
+              ${imageUrl ? '' : CAMERA_ICON}
+            </span>
+            <span class="im">
+              <b>${escapeHtml(item.name || 'Без названия')}</b>
+              <small>${escapeHtml(item.price || '')}</small>
+            </span>
+            <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           ${isOpen ? `
             <div class="ib">
-              <label class="drop ${it.image ? 'has' : ''}" ${it.image ? `style="background-image:linear-gradient(transparent 55%,rgba(0,0,0,.45)),url('${esc(it.image)}')"` : ''}>
-                ${it.image ? '<span>Нажмите, чтобы заменить фото</span>' : `${CAM}<span>Добавить фото (сожмётся автоматически)</span>`}
-                <input type="file" accept="image/*" style="display:none" data-upload-cat="${sel}" data-upload-item="${i}">
+              <label class="fl">Название<input type="text" data-edit="name" data-item-idx="${index}" value="${escapeHtml(item.name || '')}"></label>
+              <label class="fl">Описание<input type="text" data-edit="desc" data-item-idx="${index}" value="${escapeHtml(item.desc || '')}"></label>
+              <label class="fl">Цена<input type="text" data-edit="price" data-item-idx="${index}" value="${escapeHtml(item.price || '')}"></label>
+              <label class="fl">
+                Фотография
+                <label class="drop ${imageUrl ? 'has' : ''}" style="${imageUrl ? `background-image:url('${escapeHtml(imageUrl)}')` : ''}">
+                  ${imageUrl ? 'Заменить фото' : `${CAMERA_ICON} Загрузить фото`}
+                  <input type="file" class="photo-input" accept="image/*" data-upload-cat="${selectedCategoryIndex}" data-upload-item="${index}">
+                </label>
               </label>
-              ${it.image ? `<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="clear-image" data-i="${i}">Убрать фото</button></div>` : ''}
-              <label class="fl">Название<input type="text" data-k="name" value="${esc(it.name)}"></label>
-              <label class="fl">Описание<textarea data-k="desc" rows="2">${esc(it.desc)}</textarea></label>
-              <label class="fl">Цена<input type="text" data-k="price" value="${esc(it.price)}"></label>
               <div class="row">
-                <button class="btn danger" data-a="del-item" data-i="${i}">Удалить</button>
+                ${imageUrl ? `<button class="btn ghost" data-a="clear-image" data-i="${index}">Удалить фото</button>` : ''}
+                <span class="grow"></span>
+                <button class="btn danger" data-a="del-item" data-i="${index}">Удалить позицию</button>
               </div>
-            </div>
-          ` : ''}
+            </div>` : ''}
         </div>`;
-    }).join('');
-  }
+    })
+    .join('');
 
-  if (!currentCategory) {
-    itemsHtml = '<p class="empty"><b>Нет разделов</b>Создайте первый раздел кнопкой «+ Раздел»</p>';
-  } else if (!currentCategory.items || !currentCategory.items.length) {
-    itemsHtml = '<p class="empty"><b>В этом разделе пусто</b>Добавьте первый товар кнопкой ниже</p>';
-  }
-
-  h.innerHTML = `
-    <div class="chips">${catsHtml}</div>
-    <div class="list">${itemsHtml}</div>
-    ${currentCategory ? `
-      <div style="margin-top:20px"><button class="btn wide" data-a="add-item">+ Добавить позицию</button></div>
-      <div style="margin-top:40px" class="row">
-        <button class="btn danger ghost grow" data-a="ren-cat">Переименовать раздел</button>
-        <button class="btn danger grow" data-a="del-cat">Удалить раздел</button>
+  appContainer.innerHTML = `
+    <div class="chips">
+      ${categoryChipsHtml}
+      <button class="chip add" data-a="add-cat">+ Раздел</button>
+    </div>
+    <div class="card">
+      <h2>${escapeHtml(currentCategory.title)}</h2>
+      <p class="lead">${items.length} поз.</p>
+      <label class="fl">Подзаголовок<input type="text" id="i_subtitle" value="${escapeHtml(currentCategory.subtitle || '')}"></label>
+      <div class="row">
+        <button class="btn ghost" data-a="ren-cat">Переименовать</button>
+        <span class="grow"></span>
+        <button class="btn danger" data-a="del-cat">Удалить раздел</button>
       </div>
-    ` : ''}`;
+    </div>
+    ${itemsHtml}
+    <button class="btn wide" data-a="add-item">+ Добавить позицию</button>`;
 
-  if (openItem && openItem.startsWith(`${sel}:`)) {
-    const itemIdx = parseInt(openItem.split(':'));
-    const it = S.categories[sel]?.items[itemIdx];
-    if (it) {
-      h.querySelectorAll('.ib input:not([type="file"]), .ib textarea').forEach(el => {
-        el.oninput = () => {
-          const key = el.getAttribute('data-k');
-          it[key] = el.value;
-          dirty = true;
-          updSave();
-          if (key === 'name') h.querySelector(`[data-id="${openItem}"] b`).textContent = el.value || 'Без названия';
-          if (key === 'price') h.querySelector(`[data-id="${openItem}"] small`).textContent = el.value;
-        };
-      });
-    }
+  // Привязка событий для редактирования подзаголовка
+  const subtitleInput = $('#i_subtitle');
+  if (subtitleInput) {
+    subtitleInput.oninput = (e) => {
+      currentCategory.subtitle = e.target.value;
+      markDirty();
+    };
   }
+
+  // Привязка событий для редактирования полей товаров
+  document.querySelectorAll('[data-edit]').forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const field = e.target.getAttribute('data-edit');
+      const itemIdx = parseInt(e.target.getAttribute('data-item-idx'), 10);
+      
+      contentData.categories[selectedCategoryIndex].items[itemIdx][field] = e.target.value;
+      markDirty();
+
+      // Обновление превью в заголовке
+      const itemId = `${selectedCategoryIndex}:${itemIdx}`;
+      const container = document.querySelector(`[data-item-container="${itemId}"]`);
+      if (!container) return;
+
+      if (field === 'name') {
+        const nameEl = container.querySelector('b');
+        if (nameEl) nameEl.textContent = e.target.value || 'Без названия';
+      }
+      if (field === 'price') {
+        const priceEl = container.querySelector('small');
+        if (priceEl) priceEl.textContent = e.target.value;
+      }
+    });
+  });
 }
-// Загрузка и сжатие фотографий
-document.addEventListener('change', async e => {
+
+// ===== ОБРАБОТКА ЗАГРУЗКИ ФОТОГРАФИЙ =====
+document.addEventListener('change', async (e) => {
   const input = e.target.closest('input[type="file"]');
   if (!input || !input.files || !input.files[0]) return;
 
-  const catIdx = parseInt(input.getAttribute('data-upload-cat'));
-  const itemIdx = parseInt(input.getAttribute('data-upload-item'));
+  const categoryIndex = parseInt(input.getAttribute('data-upload-cat'), 10);
+  const itemIndex = parseInt(input.getAttribute('data-upload-item'), 10);
   const file = input.files[0];
 
-  toast('Обработка и загрузка фото...');
+  showToast('Обработка и загрузка фото...');
+
   try {
-    const jpegBlob = await toJpeg(file, 900);
+    const jpegBlob = await convertToJpeg(file, 900);
     const formData = new FormData();
     formData.append('image', jpegBlob, 'photo.jpg');
 
-    const res = await fetch('/admin/api/upload', {
+    const response = await fetch('/admin/api/upload', {
       method: 'POST',
       body: formData
     });
 
-    if (!res.ok) throw new Error(await responseError(res));
-    const data = await res.json();
-
-    S.categories[catIdx].items[itemIdx].image = data.url;
-    dirty = true;
-    updSave();
+    if (!response.ok) throw new Error(await getErrorMessage(response));
+    
+    const data = await response.json();
+    contentData.categories[categoryIndex].items[itemIndex].image = data.url;
+    markDirty();
     render();
-    toast('Фото загружено! Не забудьте нажать «Сохранить»');
-  } catch (err) {
-    console.error(err);
-    toast('Ошибка загрузки: ' + err.message);
+    showToast('Фото загружено! Не забудьте нажать «Сохранить»');
+  } catch (error) {
+    console.error(error);
+    showToast('Ошибка загрузки: ' + error.message);
   }
 });
 
-// Обработка кликов по кнопкам
-document.addEventListener('click', async e => {
-  const t = e.target.closest('[data-a], [data-id]');
-  if (!t) return;
+// ===== ОБРАБОТКА КЛИКОВ =====
+document.addEventListener('click', async (e) => {
+  const target = e.target.closest('[data-a], [data-toggle-item]');
+  if (!target) return;
 
-  const action = t.getAttribute('data-a');
+  const action = target.getAttribute('data-a');
 
+  // Переключение вкладок
   if (action === 'tab') {
-    setTab(t.getAttribute('data-v'));
+    switchTab(target.getAttribute('data-v'));
+    return;
   }
 
+  // Переключение категории
   if (action === 'cat') {
-    sel = parseInt(t.getAttribute('data-i'));
-    openItem = null;
+    selectedCategoryIndex = parseInt(target.getAttribute('data-i'), 10);
+    openItemId = null;
     render();
+    return;
   }
 
-  if (t.getAttribute('data-id')) {
-    const id = t.getAttribute('data-id');
-    openItem = openItem === id ? null : id;
+  // Разворачивание карточки товара
+  if (target.hasAttribute('data-toggle-item')) {
+    const itemId = target.getAttribute('data-toggle-item');
+    openItemId = openItemId === itemId ? null : itemId;
     render();
+    return;
   }
 
+  // Удаление фото
   if (action === 'clear-image') {
-    const idx = parseInt(t.getAttribute('data-i'));
-    S.categories[sel].items[idx].image = '';
-    dirty = true;
-    updSave();
+    const itemIndex = parseInt(target.getAttribute('data-i'), 10);
+    contentData.categories[selectedCategoryIndex].items[itemIndex].image = '';
+    markDirty();
     render();
+    return;
   }
 
+  // Добавление категории
   if (action === 'add-cat') {
-    const n = prompt('Название нового раздела:');
-    if (n && n.trim()) {
-      const id = 'cat-' + Date.now().toString(36);
-      S.categories.push({ id, title: n.trim(), subtitle: '', items: [] });
-      sel = S.categories.length - 1;
-      openItem = null;
-      dirty = true;
+    const categoryName = prompt('Название нового раздела:');
+    if (categoryName && categoryName.trim()) {
+      const newId = 'cat-' + Date.now().toString(36);
+      contentData.categories.push({
+        id: newId,
+        title: categoryName.trim(),
+        subtitle: '',
+        items: []
+      });
+      selectedCategoryIndex = contentData.categories.length - 1;
+      openItemId = null;
+      markDirty();
       render();
-      updSave();
     }
+    return;
   }
 
+  // Переименование категории
   if (action === 'ren-cat') {
-    const n = prompt('Новое название раздела:', S.categories[sel].title);
-    if (n && n.trim()) {
-      S.categories[sel].title = n.trim();
-      dirty = true;
+    const currentTitle = contentData.categories[selectedCategoryIndex].title;
+    const newName = prompt('Новое название раздела:', currentTitle);
+    if (newName && newName.trim()) {
+      contentData.categories[selectedCategoryIndex].title = newName.trim();
+      markDirty();
       render();
-      updSave();
     }
+    return;
   }
 
+  // Удаление категории
   if (action === 'del-cat') {
-    if (confirm(`Удалить раздел "${S.categories[sel].title}" и все его товары?`)) {
-      S.categories.splice(sel, 1);
-      sel = 0;
-      openItem = null;
-      dirty = true;
+    const categoryTitle = contentData.categories[selectedCategoryIndex].title;
+    if (confirm(`Удалить раздел "${categoryTitle}" и все его товары?`)) {
+      contentData.categories.splice(selectedCategoryIndex, 1);
+      selectedCategoryIndex = 0;
+      openItemId = null;
+      markDirty();
       render();
-      updSave();
     }
+    return;
   }
 
+  // Добавление товара
   if (action === 'add-item') {
-    if (!S.categories[sel].items) S.categories[sel].items = [];
-    S.categories[sel].items.push({ name: 'Новая позиция', desc: '', price: '0 р.', image: '' });
-    openItem = `${sel}:${S.categories[sel].items.length - 1}`;
-    dirty = true;
-    render();
-    updSave();
-  }
-
-  if (action === 'del-item') {
-    const idx = parseInt(t.getAttribute('data-i'));
-    if (confirm('Удалить эту позицию?')) {
-      S.categories[sel].items.splice(idx, 1);
-      openItem = null;
-      dirty = true;
-      render();
-      updSave();
+    if (!contentData.categories[selectedCategoryIndex].items) {
+      contentData.categories[selectedCategoryIndex].items = [];
     }
+    contentData.categories[selectedCategoryIndex].items.push({
+      name: 'Новая позиция',
+      desc: '',
+      price: '0 р.',
+      image: ''
+    });
+    openItemId = `${selectedCategoryIndex}:${contentData.categories[selectedCategoryIndex].items.length - 1}`;
+    markDirty();
+    render();
+    return;
   }
 
+  // Удаление товара
+  if (action === 'del-item') {
+    const itemIndex = parseInt(target.getAttribute('data-i'), 10);
+    if (confirm('Удалить эту позицию?')) {
+      contentData.categories[selectedCategoryIndex].items.splice(itemIndex, 1);
+      openItemId = null;
+      markDirty();
+      render();
+    }
+    return;
+  }
+
+  // Сохранение изменений
   if (action === 'save') {
-    const btn = $('#saveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Сохранение...';
+    const saveButton = $('#saveBtn');
+    saveButton.disabled = true;
+    saveButton.textContent = 'Сохранение...';
+
     try {
-      const r = await fetch('/admin/api/content', {
+      const response = await fetch('/admin/api/content', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(S)
+        body: JSON.stringify(contentData)
       });
-      if (!r.ok) throw new Error(await responseError(r));
-      dirty = false;
-      updSave();
-      toast('Изменения успешно сохранены!');
-    } catch (err) {
-      toast('Ошибка сохранения: ' + err.message);
+
+      if (!response.ok) throw new Error(await getErrorMessage(response));
+
+      hasUnsavedChanges = false;
+      updateSaveBar();
+      showToast('Изменения успешно сохранены!');
+    } catch (error) {
+      showToast('Ошибка сохранения: ' + error.message);
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Сохранить';
+      saveButton.disabled = false;
+      saveButton.textContent = 'Сохранить';
     }
   }
 });
 
-load();
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+loadContent();

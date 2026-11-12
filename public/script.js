@@ -1,296 +1,358 @@
 ﻿// RISE COFFEE — публичный сайт: берёт данные из админки, рисует страницу и включает интерактив
 (function () {
-  var $ = function (s) {
-    return document.querySelector(s);
-  };
-  var $$ = function (s) {
-    return Array.from(document.querySelectorAll(s));
-  };
+  'use strict';
 
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[c];
-    });
+  // ===== УТИЛИТЫ =====
+  const $ = (selector) => document.querySelector(selector);
+  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+  function escapeHtml(str) {
+    const text = String(str == null ? '' : str);
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return text.replace(/[&<>"']/g, (char) => map[char]);
   }
 
-  function pad(n) {
-    return (n < 10 ? "0" : "") + n;
+  function padZero(num) {
+    return num < 10 ? '0' + num : String(num);
   }
 
-  function safeUrl(u) {
-    return /^(\/uploads\/|https?:\/\/)/.test(u || "") ? u : "";
+  function isSafeUrl(url) {
+    return /^(\/uploads\/|https?:\/\/)/.test(url || '');
   }
 
-  // ===== 1. ОДНА ПОЗИЦИЯ МЕНЮ =====
-  function itemHtml(it) {
-    var src = safeUrl(it.image);
-    var pic = src
-      ? '<img src="' +
-        esc(src) +
-        '" alt="' +
-        esc(it.name) +
-        '" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">'
+  // ===== РЕНДЕРИНГ ЭЛЕМЕНТОВ МЕНЮ =====
+  function renderMenuItem(item, categoryId, itemIndex) {
+    const imageUrl = isSafeUrl(item.image) ? item.image : '';
+    const imageHtml = imageUrl
+      ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">`
       : '<svg width="40" height="40" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
 
-    return (
-      '<div class="it">' +
-        '<span class="th">' + pic + '</span>' +
-        '<span class="tx">' +
-          '<span class="n">' + esc(it.name) + '</span>' +
-          '<span class="p">' + esc(it.price) + '</span>' +
-        '</span>' +
-      '</div>'
-    );
+    const itemId = `item-${categoryId}-${itemIndex}`;
+    const hasDescription = item.desc && item.desc.trim();
+
+    return `
+      <button class="it" data-item-id="${itemId}" aria-expanded="false" ${hasDescription ? '' : 'disabled'}>
+        <span class="th">${imageHtml}</span>
+        <span class="tx">
+          <span class="n">${escapeHtml(item.name)}</span>
+          <span class="p">${escapeHtml(item.price)}</span>
+        </span>
+        ${hasDescription ? `
+          <div class="it-detail" hidden>
+            <p class="it-desc">${escapeHtml(item.desc)}</p>
+          </div>
+        ` : ''}
+      </button>`;
   }
 
-  function linkRow(href, title, sub) {
-    return (
-      '<a class="cr" href="' +
-      esc(href) +
-      '" target="_blank" rel="noopener"><span>' +
-      esc(title) +
-      "<small>" +
-      esc(sub) +
-      '</small></span><svg width="20" height="20"><use href="#go"/></svg></a>'
-    );
+  function renderContactLink(href, title, subtitle) {
+    const isExternal = /^https?:\/\//.test(href);
+    const attrs = isExternal ? ' target="_blank" rel="noopener"' : '';
+    return `
+      <a class="cr" href="${escapeHtml(href)}"${attrs}>
+        <span>
+          ${escapeHtml(title)}
+          <small>${escapeHtml(subtitle)}</small>
+        </span>
+        <svg width="20" height="20"><use href="#go"/></svg>
+      </a>`;
   }
 
-  // ===== 2. ОТРИСОВКА СТРАНИЦЫ ИЗ ДАННЫХ =====
-  function render(d) {
-    var b = d.brand || {},
-      a = d.about || {},
-      t = d.theme || {},
-      c = d.contacts || {};
+  // ===== РЕНДЕРИНГ СТРАНИЦЫ ИЗ ДАННЫХ =====
+  function renderPage(data) {
+    const brand = data.brand || {};
+    const about = data.about || {};
+    const theme = data.theme || {};
+    const contacts = data.contacts || {};
 
-    ["ink", "milk", "wood"].forEach(function (k) {
-      if (/^#[0-9a-f]{6}$/i.test(t[k])) {
-        document.documentElement.style.setProperty("--" + k, t[k]);
+    // Применяем пользовательскую тему
+    ['ink', 'milk', 'wood'].forEach((key) => {
+      if (/^#[0-9a-f]{6}$/i.test(theme[key])) {
+        document.documentElement.style.setProperty('--' + key, theme[key]);
       }
     });
 
-    document.title = (b.name || "RISE") + " COFFEE";
-    $("#brandName").textContent = b.name || "";
-    $("#tagline").textContent = b.tagline || "";
-    $("#address").textContent = b.address || "";
-    $("#foot").textContent = (b.name || "") + " COFFEE";
+    // Заполняем основные элементы
+    document.title = (brand.name || 'RISE') + ' COFFEE';
+    $('#brandName').textContent = brand.name || '';
+    $('#tagline').textContent = brand.tagline || '';
+    $('#address').textContent = brand.address || '';
+    $('#foot').textContent = (brand.name || '') + ' COFFEE';
 
-    var bg = safeUrl(d.banner && d.banner.image);
-    if (bg) {
-      var st = $("#top").style;
-      st.backgroundImage =
-        'linear-gradient(rgba(22,21,19,.62),rgba(22,21,19,.82)),url("' +
-        bg +
-        '")';
-      st.backgroundSize = "cover";
-      st.backgroundPosition = "center";
+    // Фоновое изображение шапки
+    const bannerUrl = isSafeUrl(data.banner?.image);
+    if (bannerUrl) {
+      const heroStyle = $('#top').style;
+      heroStyle.backgroundImage = `linear-gradient(rgba(22,21,19,.62),rgba(22,21,19,.82)),url("${data.banner.image}")`;
+      heroStyle.backgroundSize = 'cover';
+      heroStyle.backgroundPosition = 'center';
     }
 
-    var cats = d.categories || [];
-    $("#chips").innerHTML = cats
-      .map(function (k, i) {
-        return (
-          '<button class="chip" data-t="' +
-          esc(k.id) +
-          '"' +
-          (i === 0 ? ' aria-current="true"' : "") +
-          ">" +
-          esc(k.title) +
-          "</button>"
-        );
+    // Рендерим категории меню
+    const categories = data.categories || [];
+    $('#chips').innerHTML = categories
+      .map((cat, index) => {
+        const isFirst = index === 0;
+        return `<button class="chip" data-t="${escapeHtml(cat.id)}"${isFirst ? ' aria-current="true"' : ''}>${escapeHtml(cat.title)}</button>`;
       })
-      .join("");
+      .join('');
 
-    $("#cats").innerHTML = cats
-      .map(function (k) {
-        var items = k.items || [];
-        return (
-          '<div class="cat" id="' + esc(k.id) + '" data-cat>' +
-            '<h2>' + esc(k.title) + '</h2>' +
-            (k.subtitle ? '<p class="sub">' + esc(k.subtitle) + '</p>' : '') +
-            '<div class="items-grid">' +
-              (items.length
-                ? items.map(itemHtml).join("")
-                : '<p class="sub">Скоро здесь появится меню</p>') +
-            '</div>' +
-          '</div>'
-        );
+    $('#cats').innerHTML = categories
+      .map((cat) => {
+        const items = cat.items || [];
+        const itemsHtml = items.length
+          ? items.map((item, idx) => renderMenuItem(item, cat.id, idx)).join('')
+          : '<p class="sub">Скоро здесь появится меню</p>';
+
+        return `
+          <div class="cat" id="${escapeHtml(cat.id)}" data-cat>
+            <h2>${escapeHtml(cat.title)}</h2>
+            ${cat.subtitle ? `<p class="sub">${escapeHtml(cat.subtitle)}</p>` : ''}
+            <div class="items-grid">${itemsHtml}</div>
+          </div>`;
       })
-      .join("");
+      .join('');
 
-    $("#aboutTitle").textContent = a.title || "О нас";
-    $("#aboutText").textContent = a.text || "";
-    $("#facts").innerHTML = (a.facts || [])
-      .filter(function (f) {
-        return f.title || f.text;
-      })
-      .map(function (f) {
-        return (
-          '<div class="f"><b>' +
-          esc(f.title) +
-          "</b><span>" +
-          esc(f.text) +
-          "</span></div>"
-        );
-      })
-      .join("");
+    // Блок "О нас"
+    $('#aboutTitle').textContent = about.title || 'О нас';
+    $('#aboutText').textContent = about.text || '';
+    $('#facts').innerHTML = (about.facts || [])
+      .filter((fact) => fact.title || fact.text)
+      .map((fact) => `<div class="f"><b>${escapeHtml(fact.title)}</b><span>${escapeHtml(fact.text)}</span></div>`)
+      .join('');
 
-    var rows = [];
-    var phone = String(c.whatsapp || "").replace(/\D/g, "");
-    var insta = String(c.instagram || "")
-      .replace(/^.*instagram\.com\//i, "")
-      .replace(/^@/, "")
-      .split(/[/?]/);
+    // Контакты
+    const contactRows = [];
+    const phoneRaw = String(contacts.phone || '').trim();
+    const phoneTel = phoneRaw.replace(/[^\d+]/g, '');
+    const whatsappNumber = String(contacts.whatsapp || '').replace(/\D/g, '');
+    const instagramUsername = String(contacts.instagram || '')
+      .replace(/^.*instagram\.com\//i, '')
+      .replace(/^@/, '')
+      .split(/[/?]/)[0];
 
-    if (phone) {
-      rows.push(linkRow("https://wa.me" + phone, "WhatsApp", "Написать нам"));
+    if (phoneTel) {
+      contactRows.push(renderContactLink('tel:' + phoneTel, 'Позвонить нам', phoneRaw));
     }
-    if (insta) {
-      rows.push(
-        linkRow(
-          "https://instagram.com" + encodeURIComponent(insta),
-          "Instagram",
-          "Наши новости"
-        )
-      );
+
+    if (whatsappNumber && contacts.preorderText) {
+      const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(contacts.preorderText)}`;
+      contactRows.push(renderContactLink(waUrl, 'Предзаказ через WhatsApp', 'Забронируйте столик'));
     }
-    if (c.mapQuery) {
-      rows.push(
-        linkRow(
-          "https://yandex.ru" + encodeURIComponent(c.mapQuery),
-          "Проложить маршрут",
-          b.address || ""
-        )
+
+    if (contacts.wifi && contacts.wifiPassword) {
+      contactRows.push(
+        `<button class="cr" id="wifiBtn" data-pass="${escapeHtml(contacts.wifiPassword)}">
+          <span>Wi-Fi<small>${escapeHtml(contacts.wifi)}</small></span>
+          <svg width="20" height="20"><use href="#go"/></svg>
+        </button>`
       );
     }
 
-    $("#contactsList").innerHTML = rows.join("");
+    if (instagramUsername) {
+      contactRows.push(
+        renderContactLink(`https://instagram.com/${instagramUsername}`, 'Наш Instagram', '@' + instagramUsername)
+      );
+    }
+
+    if (contacts.mapQuery && brand.address) {
+      const mapUrl = `https://yandex.ru/maps/?text=${encodeURIComponent(contacts.mapQuery)}`;
+      contactRows.push(renderContactLink(mapUrl, 'Проложить маршрут', brand.address));
+    }
+
+    $('#contactsList').innerHTML = contactRows.join('');
   }
 
-  // ===== 3. ИНТЕРАКТИВ =====
-  function wire(d) {
-    var toast = $("#toast"),
-      chips = $("#chips"),
-      tt;
+  // ===== ИНТЕРАКТИВНОСТЬ =====
+  function setupInteractivity(data) {
+    const toastEl = $('#toast');
+    const chipsEl = $('#chips');
+    let toastTimer;
 
-    function say(m) {
-      toast.textContent = m;
-      toast.classList.add("on");
-      clearTimeout(tt);
-      tt = setTimeout(function () {
-        toast.classList.remove("on");
-      }, 1800);
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1800);
     }
 
-    function fitChips() {
-      if (!chips) return;
-      var btns = $$(".chip");
+    // Адаптация ширины чипов для мобильных
+    function adjustChipsWidth() {
+      if (!chipsEl) return;
+      const buttons = $$('.chip');
       if (window.innerWidth >= 768) {
-        btns.forEach(function (c) {
-          c.style.width = "";
-          c.style.flex = "";
+        buttons.forEach((btn) => {
+          btn.style.width = '';
+          btn.style.flex = '';
         });
         return;
       }
-      var sheet = $(".sheet");
-      var w = sheet ? sheet.clientWidth : document.documentElement.clientWidth;
-      var exactW = Math.floor((w - 60) / 4);
-      btns.forEach(function (c) {
-        c.style.flex = "0 0 " + exactW + "px";
-        c.style.width = exactW + "px";
+      const sheet = $('.sheet');
+      const containerWidth = sheet ? sheet.clientWidth : document.documentElement.clientWidth;
+      const chipWidth = Math.floor((containerWidth - 60) / 4);
+      buttons.forEach((btn) => {
+        btn.style.flex = `0 0 ${chipWidth}px`;
+        btn.style.width = `${chipWidth}px`;
       });
     }
 
-    fitChips();
-    window.addEventListener("resize", fitChips);
+    adjustChipsWidth();
+    window.addEventListener('resize', adjustChipsWidth);
 
-    $$("[data-t]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var s = document.getElementById(btn.dataset.t);
-        if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Навигация по якорям
+    $$('[data-t]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.t);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     });
 
-    function spy(sel, btnSel, margin, after) {
-      if (!("IntersectionObserver" in window)) return;
-      var io = new IntersectionObserver(
-        function (es) {
-          es.forEach(function (e) {
-            if (!e.isIntersecting) return;
-            $$(btnSel).forEach(function (b, idx) {
-              var on = b.dataset.t === e.target.id;
-              b.setAttribute("aria-current", on);
-              if (on && after) after(b, idx);
+    // Раскрытие карточек товаров
+    $$('.it[data-item-id]').forEach((itemButton) => {
+      itemButton.addEventListener('click', () => {
+        const isExpanded = itemButton.getAttribute('aria-expanded') === 'true';
+        const detailEl = itemButton.querySelector('.it-detail');
+        
+        if (!detailEl) return;
+
+        if (isExpanded) {
+          itemButton.setAttribute('aria-expanded', 'false');
+          detailEl.hidden = true;
+        } else {
+          itemButton.setAttribute('aria-expanded', 'true');
+          detailEl.hidden = false;
+        }
+      });
+    });
+
+    // Определение достижения конца страницы
+    function isAtBottom() {
+      return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
+    }
+
+    // Отслеживание видимых секций (Intersection Observer)
+    function observeSections(selector, buttonSelector, margin, onVisible) {
+      if (!('IntersectionObserver' in window)) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            if (buttonSelector === '.nb' && isAtBottom()) return;
+
+            $$(buttonSelector).forEach((btn, index) => {
+              const isActive = btn.dataset.t === entry.target.id;
+              btn.setAttribute('aria-current', String(isActive));
+              if (isActive && onVisible) {
+                onVisible(btn, index);
+              }
             });
           });
         },
         { rootMargin: margin }
       );
-      $$(sel).forEach(function (s) {
-        io.observe(s);
-      });
+
+      $$(selector).forEach((section) => observer.observe(section));
     }
 
-    spy("[data-cat]", ".chip", "-30% 0px -65% 0px", function (b, idx) {
+    // Отслеживание категорий меню
+    observeSections('[data-cat]', '.chip', '-30% 0px -65% 0px', (activeBtn, index) => {
       try {
-        var pageStartIdx = Math.floor(idx / 4) * 4;
-        var targetBtn = $$(".chip")[pageStartIdx] || b;
-        chips.scrollTo({ left: targetBtn.offsetLeft - 20, behavior: "smooth" });
-      } catch (e) {}
-    });
-    spy("[data-main]", ".nb", "-45% 0px -50% 0px");
-
-    var h = d.hours || {},
-      o = Number(h.open),
-      c = Number(h.close);
-    var hour = new Date().getHours(),
-      isOpen = hour >= o && hour < c;
-    var badge = $("#status");
-    badge.classList.toggle("open", isOpen);
-    badge.lastChild.textContent = isOpen
-      ? "Открыто до " + pad(c) + ":00"
-      : "Откроемся в " + pad(o) + ":00";
-
-    $("#addr").addEventListener("click", function () {
-      var text = String((d.brand || {}).address || "").replace("•", ",");
-      try {
-        navigator.clipboard.writeText(text).then(
-          function () {
-            say("Адрес скопирован");
-          },
-          function () {
-            say(text);
-          }
-        );
-      } catch (e) {
-        say(text);
+        const pageStartIndex = Math.floor(index / 4) * 4;
+        const targetButton = $$('.chip')[pageStartIndex] || activeBtn;
+        chipsEl.scrollTo({ left: targetButton.offsetLeft - 20, behavior: 'smooth' });
+      } catch (err) {
+        console.warn('Chip scroll failed:', err);
       }
     });
+
+    // Отслеживание основных секций
+    observeSections('[data-main]', '.nb', '-45% 0px -50% 0px');
+
+    // Подсветка последней кнопки навигации при достижении конца
+    window.addEventListener('scroll', () => {
+      if (!isAtBottom()) return;
+      const navButtons = $$('.nb');
+      if (!navButtons.length) return;
+      navButtons.forEach((btn, index) => {
+        btn.setAttribute('aria-current', String(index === navButtons.length - 1));
+      });
+    }, { passive: true });
+
+    // Индикатор режима работы (открыто/закрыто)
+    const hours = data.hours || {};
+    const openHour = Number(hours.open) || 0;
+    const closeHour = Number(hours.close) || 24;
+    const currentHour = new Date().getHours();
+    const isOpen = currentHour >= openHour && currentHour < closeHour;
+
+    const statusBadge = $('#status');
+    statusBadge.classList.toggle('open', isOpen);
+    statusBadge.lastChild.textContent = isOpen
+      ? `Открыто до ${padZero(closeHour)}:00`
+      : `Откроемся в ${padZero(openHour)}:00`;
+
+    // Копирование адреса
+    $('#addr').addEventListener('click', () => {
+      const addressText = String(brand.address || '').replace('•', ',');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(addressText).then(
+          () => showToast('Адрес скопирован'),
+          () => showToast(addressText)
+        );
+      } else {
+        showToast(addressText);
+      }
+    });
+
+    // Копирование пароля Wi-Fi
+    const wifiButton = $('#wifiBtn');
+    if (wifiButton) {
+      wifiButton.addEventListener('click', () => {
+        const password = wifiButton.getAttribute('data-pass') || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(password).then(
+            () => showToast('Пароль от Wi-Fi скопирован'),
+            () => showToast('Пароль: ' + password)
+          );
+        } else {
+          showToast('Пароль: ' + password);
+        }
+      });
+    }
   }
 
-  // ===== 4. ЗАПУСК =====
-  function start(d) {
-    render(d);
-    wire(d);
+  // ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
+  function init(data) {
+    renderPage(data);
+    setupInteractivity(data);
   }
 
-  var raw = $("#data").textContent.trim();
-  if (raw.charAt(0) === "{") {
-    start(JSON.parse(raw));
+  // Загрузка данных
+  const dataScript = $('#data');
+  const inlineData = dataScript ? dataScript.textContent.trim() : '';
+
+  if (inlineData && inlineData.charAt(0) === '{') {
+    try {
+      init(JSON.parse(inlineData));
+    } catch (err) {
+      console.error('Ошибка парсинга встроенных данных:', err);
+    }
   } else {
-    fetch("/api/content")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(start)
-      .catch(function () {
+    fetch('/api/content')
+      .then((response) => response.json())
+      .then(init)
+      .catch(() => {
         document.body.insertAdjacentHTML(
-          "afterbegin",
+          'afterbegin',
           '<p style="padding:20px;color:#fff;text-align:center">Запустите сайт командой npm start</p>'
         );
       });
