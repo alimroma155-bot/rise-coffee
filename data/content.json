@@ -56,7 +56,7 @@
         {
           "name": "круассан ",
           "desc": "Двойной эспрессо, молочная пенка, 250 мл",
-          "price": "10 р.",
+          "price": " р.",
           "image": "/uploads/mw9n3bcidb41e578.jpg",
           "null": "C:\\fakepath\\завтрак 3.jpg"
         },
@@ -187,6 +187,31 @@
     {
       "id": "cat-mwc11kff",
       "title": "акция",
+      "subtitle": "",
+      "items": []
+    },
+    {
+      "id": "cat-mwdgsegf",
+      "title": "прототип",
+      "subtitle": "",
+      "items": [
+        {
+          "name": "Новая позиция",
+          "desc": "",
+          "price": "0 р.",
+          "image": ""
+        }
+      ]
+    },
+    {
+      "id": "cat-mwdgsofz",
+      "title": "прототип",
+      "subtitle": "",
+      "items": []
+    },
+    {
+      "id": "cat-mwdgss73",
+      "title": "прототип",
       "subtitle": "",
       "items": []
     }

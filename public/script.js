@@ -37,17 +37,12 @@
     const hasDescription = item.desc && item.desc.trim();
 
     return `
-      <button class="it" data-item-id="${itemId}" aria-expanded="false" ${hasDescription ? '' : 'disabled'}>
+      <button class="it" data-item-id="${itemId}" data-item-json='${escapeHtml(JSON.stringify(item))}' ${hasDescription ? '' : 'disabled'}>
         <span class="th">${imageHtml}</span>
         <span class="tx">
           <span class="n">${escapeHtml(item.name)}</span>
           <span class="p">${escapeHtml(item.price)}</span>
         </span>
-        ${hasDescription ? `
-          <div class="it-detail" hidden>
-            <p class="it-desc">${escapeHtml(item.desc)}</p>
-          </div>
-        ` : ''}
       </button>`;
   }
 
@@ -169,6 +164,48 @@
     $('#contactsList').innerHTML = contactRows.join('');
   }
 
+  // ===== МОДАЛЬНОЕ ОКНО ТОВАРА =====
+  function openItemModal(item) {
+    const modal = $('#itemModal');
+    const modalCard = $('#modalCard');
+    const modalDesc = $('#modalDesc');
+
+    const imageUrl = isSafeUrl(item.image) ? item.image : '';
+    const imageHtml = imageUrl
+      ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:20px">`
+      : '<svg width="60" height="60" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
+
+    modalCard.innerHTML = `
+      <div class="modal-image">${imageHtml}</div>
+      <div class="modal-info">
+        <h3 class="modal-name">${escapeHtml(item.name)}</h3>
+        <p class="modal-price">${escapeHtml(item.price)}</p>
+      </div>`;
+
+    modalDesc.textContent = item.desc || '';
+
+    modal.removeAttribute('hidden');
+    requestAnimationFrame(() => {
+      modal.classList.add('modal-open');
+    });
+    document.body.style.overflow = 'hidden';
+
+    const closeBtn = $('#modalClose');
+    if (closeBtn) {
+      setTimeout(() => closeBtn.focus(), 150);
+    }
+  }
+
+  function closeItemModal() {
+    const modal = $('#itemModal');
+    modal.classList.remove('modal-open');
+    
+    setTimeout(() => {
+      modal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+
   // ===== ИНТЕРАКТИВНОСТЬ =====
   function setupInteractivity(data) {
     const toastEl = $('#toast');
@@ -215,22 +252,43 @@
       });
     });
 
-    // Раскрытие карточек товаров
-    $$('.it[data-item-id]').forEach((itemButton) => {
-      itemButton.addEventListener('click', () => {
-        const isExpanded = itemButton.getAttribute('aria-expanded') === 'true';
-        const detailEl = itemButton.querySelector('.it-detail');
-        
-        if (!detailEl) return;
+    // Открытие модального окна при клике на карточку товара (делегирование)
+    document.addEventListener('click', (e) => {
+      const itemBtn = e.target.closest('.it[data-item-json]');
+      if (itemBtn && !itemBtn.disabled) {
+        try {
+          const itemData = JSON.parse(itemBtn.getAttribute('data-item-json'));
+          openItemModal(itemData);
+        } catch (err) {
+          console.error('Ошибка открытия карточки:', err);
+        }
+      }
+    });
 
-        if (isExpanded) {
-          itemButton.setAttribute('aria-expanded', 'false');
-          detailEl.hidden = true;
-        } else {
-          itemButton.setAttribute('aria-expanded', 'true');
-          detailEl.hidden = false;
+    // Закрытие модального окна
+    const modalClose = $('#modalClose');
+    const modalBackdrop = $('#itemModal');
+    
+    if (modalClose) {
+      modalClose.addEventListener('click', closeItemModal);
+    }
+
+    if (modalBackdrop) {
+      modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) {
+          closeItemModal();
         }
       });
+    }
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = $('#itemModal');
+        if (modal && !modal.hasAttribute('hidden')) {
+          closeItemModal();
+        }
+      }
     });
 
     // Определение достижения конца страницы
@@ -301,6 +359,7 @@
       : `Откроемся в ${padZero(openHour)}:00`;
 
     // Копирование адреса
+    const brand = data.brand || {};
     $('#addr').addEventListener('click', () => {
       const addressText = String(brand.address || '').replace('•', ',');
       if (navigator.clipboard && navigator.clipboard.writeText) {
