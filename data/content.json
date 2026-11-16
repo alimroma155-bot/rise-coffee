@@ -11,9 +11,9 @@
   "banner": {
     "image": "/uploads/hero.jpg"
   },
-  "theme": {
+   "theme": {
     "ink": "#161513",
-    "milk": "#FBF9F6",
+    "milk": "#F3EAE0",
     "wood": "#D4C5B9"
   },
   "about": {
@@ -107,56 +107,6 @@
       ]
     },
     {
-      "id": "coffee",
-      "title": "Кофе",
-      "subtitle": "",
-      "items": [
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        }
-      ]
-    },
-    {
-      "id": "desserts",
-      "title": "Десерты",
-      "subtitle": "",
-      "items": [
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        },
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        }
-      ]
-    },
-    {
       "id": "drinks",
       "title": "Напитки",
       "subtitle": "",
@@ -185,33 +135,8 @@
       ]
     },
     {
-      "id": "cat-mwc11kff",
-      "title": "акция",
-      "subtitle": "",
-      "items": []
-    },
-    {
-      "id": "cat-mwdgsegf",
-      "title": "прототип",
-      "subtitle": "",
-      "items": [
-        {
-          "name": "Новая позиция",
-          "desc": "",
-          "price": "0 р.",
-          "image": ""
-        }
-      ]
-    },
-    {
-      "id": "cat-mwdgsofz",
-      "title": "прототип",
-      "subtitle": "",
-      "items": []
-    },
-    {
-      "id": "cat-mwdgss73",
-      "title": "прототип",
+      "id": "cat-mwjlxfu5",
+      "title": "Десерты",
       "subtitle": "",
       "items": []
     }

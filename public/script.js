@@ -130,7 +130,7 @@
     const instagramUsername = String(contacts.instagram || '')
       .replace(/^.*instagram\.com\//i, '')
       .replace(/^@/, '')
-      .split(/[/?]/)[0];
+      .split(/[/?]/);
 
     if (phoneTel) {
       contactRows.push(renderContactLink('tel:' + phoneTel, 'Позвонить нам', phoneRaw));
@@ -163,7 +163,6 @@
 
     $('#contactsList').innerHTML = contactRows.join('');
   }
-
   // ===== МОДАЛЬНОЕ ОКНО ТОВАРА =====
   function openItemModal(item) {
     const modal = $('#itemModal');
@@ -199,7 +198,7 @@
   function closeItemModal() {
     const modal = $('#itemModal');
     modal.classList.remove('modal-open');
-    
+
     setTimeout(() => {
       modal.setAttribute('hidden', '');
       document.body.style.overflow = '';
@@ -209,7 +208,6 @@
   // ===== ИНТЕРАКТИВНОСТЬ =====
   function setupInteractivity(data) {
     const toastEl = $('#toast');
-    const chipsEl = $('#chips');
     let toastTimer;
 
     function showToast(message) {
@@ -219,195 +217,154 @@
       toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1800);
     }
 
-    // Адаптация ширины чипов для мобильных
-    function adjustChipsWidth() {
-      if (!chipsEl) return;
-      const buttons = $$('.chip');
-      if (window.innerWidth >= 768) {
-        buttons.forEach((btn) => {
-          btn.style.width = '';
-          btn.style.flex = '';
-        });
-        return;
-      }
-      const sheet = $('.sheet');
-      const containerWidth = sheet ? sheet.clientWidth : document.documentElement.clientWidth;
-      const chipWidth = Math.floor((containerWidth - 60) / 4);
-      buttons.forEach((btn) => {
-        btn.style.flex = `0 0 ${chipWidth}px`;
-        btn.style.width = `${chipWidth}px`;
-      });
-    }
-
-    adjustChipsWidth();
-    window.addEventListener('resize', adjustChipsWidth);
-
-    // Навигация по якорям
+    // Плавный скролл по кнопкам разделов и нижней навигации
     $$('[data-t]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.t);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
 
-    // Открытие модального окна при клике на карточку товара (делегирование)
-    document.addEventListener('click', (e) => {
-      const itemBtn = e.target.closest('.it[data-item-json]');
-      if (itemBtn && !itemBtn.disabled) {
-        try {
-          const itemData = JSON.parse(itemBtn.getAttribute('data-item-json'));
-          openItemModal(itemData);
-        } catch (err) {
-          console.error('Ошибка открытия карточки:', err);
-        }
-      }
-    });
-
-    // Закрытие модального окна
-    const modalClose = $('#modalClose');
-    const modalBackdrop = $('#itemModal');
-    
-    if (modalClose) {
-      modalClose.addEventListener('click', closeItemModal);
-    }
-
-    if (modalBackdrop) {
-      modalBackdrop.addEventListener('click', (e) => {
-        if (e.target === modalBackdrop) {
-          closeItemModal();
-        }
-      });
-    }
-
-    // Закрытие по Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        const modal = $('#itemModal');
-        if (modal && !modal.hasAttribute('hidden')) {
-          closeItemModal();
-        }
-      }
-    });
-
-    // Определение достижения конца страницы
     function isAtBottom() {
       return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
     }
 
-    // Отслеживание видимых секций (Intersection Observer)
-    function observeSections(selector, buttonSelector, margin, onVisible) {
+    function observeSections(sel, btnSel, margin) {
       if (!('IntersectionObserver' in window)) return;
-
-      const observer = new IntersectionObserver(
+      const io = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
-            if (buttonSelector === '.nb' && isAtBottom()) return;
-
-            $$(buttonSelector).forEach((btn, index) => {
-              const isActive = btn.dataset.t === entry.target.id;
-              btn.setAttribute('aria-current', String(isActive));
-              if (isActive && onVisible) {
-                onVisible(btn, index);
-              }
+            if (btnSel === '.nb' && isAtBottom()) return;
+            $$(btnSel).forEach((btn) => {
+              const active = btn.dataset.t === entry.target.id;
+              btn.setAttribute('aria-current', active);
             });
           });
         },
         { rootMargin: margin }
       );
-
-      $$(selector).forEach((section) => observer.observe(section));
+      $$(sel).forEach((sec) => io.observe(sec));
     }
 
-    // Отслеживание категорий меню
-    observeSections('[data-cat]', '.chip', '-30% 0px -65% 0px', (activeBtn, index) => {
+    observeSections('[data-cat]', '.chip', '-30% 0px -65% 0px');
+    observeSections('[data-main]', '.nb', '-45% 0px -50% 0px');
+    // Скролл: подсветка «Контактов» внизу и кнопка «Наверх»
+    const scrollTopBtn = $('#scrollTopBtn');
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (isAtBottom()) {
+          const navBtns = $$('.nb');
+          if (navBtns.length) {
+            navBtns.forEach((b, i) => {
+              b.setAttribute('aria-current', i === navBtns.length - 1 ? 'true' : 'false');
+            });
+          }
+        }
+
+        if (scrollTopBtn) {
+          const nearBottom =
+            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
+          scrollTopBtn.classList.toggle('show', nearBottom);
+        }
+      },
+      { passive: true }
+    );
+
+    if (scrollTopBtn) {
+      scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // Открытие и закрытие модального окна товара
+    $('#cats').addEventListener('click', (e) => {
+      const btn = e.target.closest('.it[data-item-json]');
+      if (!btn || btn.disabled) return;
       try {
-        const pageStartIndex = Math.floor(index / 4) * 4;
-        const targetButton = $$('.chip')[pageStartIndex] || activeBtn;
-        chipsEl.scrollTo({ left: targetButton.offsetLeft - 20, behavior: 'smooth' });
-      } catch (err) {
-        console.warn('Chip scroll failed:', err);
+        const item = JSON.parse(btn.getAttribute('data-item-json'));
+        openItemModal(item);
+      } catch (err) {}
+    });
+
+    const modalEl = $('#itemModal');
+    const modalCloseBtn = $('#modalClose');
+    if (modalCloseBtn) {
+      modalCloseBtn.addEventListener('click', closeItemModal);
+    }
+    if (modalEl) {
+      modalEl.addEventListener('click', (e) => {
+        if (e.target === modalEl || e.target.classList.contains('item-modal-backdrop')) {
+          closeItemModal();
+        }
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalEl && !modalEl.hasAttribute('hidden')) {
+        closeItemModal();
       }
     });
 
-    // Отслеживание основных секций
-    observeSections('[data-main]', '.nb', '-45% 0px -50% 0px');
-
-    // Подсветка последней кнопки навигации при достижении конца
-    window.addEventListener('scroll', () => {
-      if (!isAtBottom()) return;
-      const navButtons = $$('.nb');
-      if (!navButtons.length) return;
-      navButtons.forEach((btn, index) => {
-        btn.setAttribute('aria-current', String(index === navButtons.length - 1));
-      });
-    }, { passive: true });
-
-    // Индикатор режима работы (открыто/закрыто)
+    // Статус работы кофейни
     const hours = data.hours || {};
-    const openHour = Number(hours.open) || 0;
-    const closeHour = Number(hours.close) || 24;
+    const openHour = Number(hours.open);
+    const closeHour = Number(hours.close);
     const currentHour = new Date().getHours();
     const isOpen = currentHour >= openHour && currentHour < closeHour;
+    const badge = $('#status');
+    if (badge) {
+      badge.classList.toggle('open', isOpen);
+      badge.lastChild.textContent = isOpen
+        ? `Открыто до ${padZero(closeHour)}:00`
+        : `Откроемся в ${padZero(openHour)}:00`;
+    }
 
-    const statusBadge = $('#status');
-    statusBadge.classList.toggle('open', isOpen);
-    statusBadge.lastChild.textContent = isOpen
-      ? `Открыто до ${padZero(closeHour)}:00`
-      : `Откроемся в ${padZero(openHour)}:00`;
-
-    // Копирование адреса
-    const brand = data.brand || {};
-    $('#addr').addEventListener('click', () => {
-      const addressText = String(brand.address || '').replace('•', ',');
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(addressText).then(
-          () => showToast('Адрес скопирован'),
-          () => showToast(addressText)
-        );
-      } else {
-        showToast(addressText);
-      }
-    });
-
-    // Копирование пароля Wi-Fi
-    const wifiButton = $('#wifiBtn');
-    if (wifiButton) {
-      wifiButton.addEventListener('click', () => {
-        const password = wifiButton.getAttribute('data-pass') || '';
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(password).then(
-            () => showToast('Пароль от Wi-Fi скопирован'),
-            () => showToast('Пароль: ' + password)
+    // Копирование адреса и пароля Wi-Fi
+    const addrBtn = $('#addr');
+    if (addrBtn) {
+      addrBtn.addEventListener('click', () => {
+        const text = String((data.brand || {}).address || '').replace('•', ',');
+        try {
+          navigator.clipboard.writeText(text).then(
+            () => showToast('Адрес скопирован'),
+            () => showToast(text)
           );
-        } else {
-          showToast('Пароль: ' + password);
+        } catch (e) {
+          showToast(text);
+        }
+      });
+    }
+
+    const wifiBtn = $('#wifiBtn');
+    if (wifiBtn) {
+      wifiBtn.addEventListener('click', () => {
+        const pass = wifiBtn.getAttribute('data-pass') || '';
+        try {
+          navigator.clipboard.writeText(pass).then(
+            () => showToast('Пароль от Wi-Fi скопирован'),
+            () => showToast('Пароль: ' + pass)
+          );
+        } catch (e) {
+          showToast('Пароль: ' + pass);
         }
       });
     }
   }
 
-  // ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
+  // ===== ЗАПУСК =====
   function init(data) {
     renderPage(data);
     setupInteractivity(data);
   }
 
-  // Загрузка данных
-  const dataScript = $('#data');
-  const inlineData = dataScript ? dataScript.textContent.trim() : '';
-
-  if (inlineData && inlineData.charAt(0) === '{') {
-    try {
-      init(JSON.parse(inlineData));
-    } catch (err) {
-      console.error('Ошибка парсинга встроенных данных:', err);
-    }
+  const rawData = $('#data').textContent.trim();
+  if (rawData.charAt(0) === '{') {
+    init(JSON.parse(rawData));
   } else {
     fetch('/api/content')
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then(init)
       .catch(() => {
         document.body.insertAdjacentHTML(
