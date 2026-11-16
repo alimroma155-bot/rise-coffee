@@ -84,7 +84,7 @@
     const bannerUrl = isSafeUrl(data.banner?.image);
     if (bannerUrl) {
       const heroStyle = $('#top').style;
-      heroStyle.backgroundImage = `linear-gradient(rgba(22,21,19,.62),rgba(22,21,19,.82)),url("${data.banner.image}")`;
+      heroStyle.backgroundImage = `linear-gradient(rgba(22,21,19,.28),rgba(22,21,19,.45)),url("${data.banner.image}")`;
       heroStyle.backgroundSize = 'cover';
       heroStyle.backgroundPosition = 'center';
     }
