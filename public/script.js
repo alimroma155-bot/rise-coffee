@@ -1,4 +1,4 @@
-﻿// RISE COFFEE — публичный сайт: берёт данные из админки, рисует страницу и включает интерактив
+﻿// RISE COFFEE — публичный сайт (Warm Minimalism / Organic Luxury)
 (function () {
   'use strict';
 
@@ -26,12 +26,19 @@
     return /^(\/uploads\/|https?:\/\/)/.test(url || '');
   }
 
+  function getCategoryIcon(title) {
+    const t = String(title || '').toLowerCase();
+    if (t.includes('напит') || t.includes('кофе') || t.includes('чай')) return 'cup';
+    if (t.includes('десерт') || t.includes('выпеч') || t.includes('слад')) return 'cake';
+    return 'cutlery';
+  }
+
   // ===== РЕНДЕРИНГ ЭЛЕМЕНТОВ МЕНЮ =====
   function renderMenuItem(item, categoryId, itemIndex) {
     const imageUrl = isSafeUrl(item.image) ? item.image : '';
     const imageHtml = imageUrl
-      ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">`
-      : '<svg width="40" height="40" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
+      ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async">`
+      : '<svg width="42" height="42" style="opacity:0.35"><use href="#cup"/></svg>';
 
     const itemId = `item-${categoryId}-${itemIndex}`;
     const hasDescription = item.desc && item.desc.trim();
@@ -46,16 +53,19 @@
       </button>`;
   }
 
-  function renderContactLink(href, title, subtitle) {
+  function renderContactCard(href, title, subtitle, iconId) {
     const isExternal = /^https?:\/\//.test(href);
-    const attrs = isExternal ? ' target="_blank" rel="noopener"' : '';
+    const attrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
     return `
       <a class="cr" href="${escapeHtml(href)}"${attrs}>
-        <span>
-          ${escapeHtml(title)}
-          <small>${escapeHtml(subtitle)}</small>
+        <span class="cr-left">
+          <span class="cr-icon"><svg width="19" height="19"><use href="#${iconId}"/></svg></span>
+          <span class="cr-text">
+            <span class="cr-title">${escapeHtml(title)}</span>
+            <span class="cr-sub">${escapeHtml(subtitle)}</span>
+          </span>
         </span>
-        <svg width="20" height="20"><use href="#go"/></svg>
+        <svg class="cr-arrow" width="18" height="18"><use href="#arrow-right"/></svg>
       </a>`;
   }
 
@@ -63,41 +73,35 @@
   function renderPage(data) {
     const brand = data.brand || {};
     const about = data.about || {};
-    const theme = data.theme || {};
     const contacts = data.contacts || {};
 
-    // Применяем пользовательскую тему
-    ['ink', 'milk', 'wood'].forEach((key) => {
-      if (/^#[0-9a-f]{6}$/i.test(theme[key])) {
-        document.documentElement.style.setProperty('--' + key, theme[key]);
-      }
-    });
-
-    // Заполняем основные элементы
     document.title = (brand.name || 'RISE') + ' COFFEE';
     $('#brandName').textContent = brand.name || '';
     $('#tagline').textContent = brand.tagline || '';
     $('#address').textContent = brand.address || '';
     $('#foot').textContent = (brand.name || '') + ' COFFEE';
 
-    // Фоновое изображение шапки
+    // Фоновое изображение главного экрана
     const bannerUrl = isSafeUrl(data.banner?.image);
     if (bannerUrl) {
-      const heroStyle = $('#top').style;
-      heroStyle.backgroundImage = `linear-gradient(rgba(22,21,19,.28),rgba(22,21,19,.45)),url("${data.banner.image}")`;
-      heroStyle.backgroundSize = 'cover';
-      heroStyle.backgroundPosition = 'center';
+      $('#top').style.backgroundImage = `url("${data.banner.image}")`;
     }
 
-    // Рендерим категории меню
+    // Разделы меню с иконками
     const categories = data.categories || [];
     $('#chips').innerHTML = categories
       .map((cat, index) => {
         const isFirst = index === 0;
-        return `<button class="chip" data-t="${escapeHtml(cat.id)}"${isFirst ? ' aria-current="true"' : ''}>${escapeHtml(cat.title)}</button>`;
+        const iconId = getCategoryIcon(cat.title);
+        return `
+          <button class="chip" data-t="${escapeHtml(cat.id)}"${isFirst ? ' aria-current="true"' : ''}>
+            <svg width="15" height="15"><use href="#${iconId}"/></svg>
+            <span>${escapeHtml(cat.title)}</span>
+          </button>`;
       })
       .join('');
 
+    // Карточки блюд по категориям
     $('#cats').innerHTML = categories
       .map((cat) => {
         const items = cat.items || [];
@@ -122,7 +126,7 @@
       .map((fact) => `<div class="f"><b>${escapeHtml(fact.title)}</b><span>${escapeHtml(fact.text)}</span></div>`)
       .join('');
 
-    // Контакты
+    // Карточки контактов с иконками
     const contactRows = [];
     const phoneRaw = String(contacts.phone || '').trim();
     const phoneTel = phoneRaw.replace(/[^\d+]/g, '');
@@ -133,32 +137,38 @@
       .split(/[/?]/);
 
     if (phoneTel) {
-      contactRows.push(renderContactLink('tel:' + phoneTel, 'Позвонить нам', phoneRaw));
+      contactRows.push(renderContactCard('tel:' + phoneTel, 'Позвонить нам', phoneRaw, 'phone'));
     }
 
     if (whatsappNumber && contacts.preorderText) {
-      const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(contacts.preorderText)}`;
-      contactRows.push(renderContactLink(waUrl, 'Предзаказ через WhatsApp', 'Забронируйте столик'));
+      const waUrl = `https://wa.me{whatsappNumber}?text=${encodeURIComponent(contacts.preorderText)}`;
+      contactRows.push(renderContactCard(waUrl, 'Предзаказ в WhatsApp', 'Забронировать столик', 'whatsapp'));
     }
 
     if (contacts.wifi && contacts.wifiPassword) {
       contactRows.push(
         `<button class="cr" id="wifiBtn" data-pass="${escapeHtml(contacts.wifiPassword)}">
-          <span>Wi-Fi<small>${escapeHtml(contacts.wifi)}</small></span>
-          <svg width="20" height="20"><use href="#go"/></svg>
+          <span class="cr-left">
+            <span class="cr-icon"><svg width="19" height="19"><use href="#wifi"/></svg></span>
+            <span class="cr-text">
+              <span class="cr-title">Гостевой Wi-Fi</span>
+              <span class="cr-sub">${escapeHtml(contacts.wifi)} • Нажмите для копирования</span>
+            </span>
+          </span>
+          <svg class="cr-arrow" width="18" height="18"><use href="#arrow-right"/></svg>
         </button>`
       );
     }
 
     if (instagramUsername) {
       contactRows.push(
-        renderContactLink(`https://instagram.com/${instagramUsername}`, 'Наш Instagram', '@' + instagramUsername)
+        renderContactCard(`https://instagram.com{instagramUsername}`, 'Наш Instagram', '@' + instagramUsername, 'insta')
       );
     }
 
     if (contacts.mapQuery && brand.address) {
-      const mapUrl = `https://yandex.ru/maps/?text=${encodeURIComponent(contacts.mapQuery)}`;
-      contactRows.push(renderContactLink(mapUrl, 'Проложить маршрут', brand.address));
+      const mapUrl = `https://yandex.ru{encodeURIComponent(contacts.mapQuery)}`;
+      contactRows.push(renderContactCard(mapUrl, 'Проложить маршрут', brand.address, 'pin'));
     }
 
     $('#contactsList').innerHTML = contactRows.join('');
@@ -172,12 +182,12 @@
     const imageUrl = isSafeUrl(item.image) ? item.image : '';
     const imageHtml = imageUrl
       ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:20px">`
-      : '<svg width="60" height="60" style="color:var(--wood);opacity:0.3"><use href="#cup"/></svg>';
+      : '<svg width="56" height="56" style="opacity:0.35"><use href="#cup"/></svg>';
 
     modalCard.innerHTML = `
       <div class="modal-image">${imageHtml}</div>
       <div class="modal-info">
-        <h3 class="modal-name">${escapeHtml(item.name)}</h3>
+        <h3 class="modal-name" id="modalName">${escapeHtml(item.name)}</h3>
         <p class="modal-price">${escapeHtml(item.price)}</p>
       </div>`;
 
@@ -217,7 +227,7 @@
       toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1800);
     }
 
-    // Плавный скролл по кнопкам разделов и нижней навигации
+    // Плавный скролл к выбранному разделу
     $$('[data-t]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.t);
@@ -249,7 +259,7 @@
 
     observeSections('[data-cat]', '.chip', '-30% 0px -65% 0px');
     observeSections('[data-main]', '.nb', '-45% 0px -50% 0px');
-    // Скролл: подсветка «Контактов» внизу и кнопка «Наверх»
+    // Подсветка контактов внизу и кнопка возврата наверх
     const scrollTopBtn = $('#scrollTopBtn');
 
     window.addEventListener(
@@ -266,7 +276,7 @@
 
         if (scrollTopBtn) {
           const nearBottom =
-            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
+            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
           scrollTopBtn.classList.toggle('show', nearBottom);
         }
       },
@@ -307,7 +317,7 @@
       }
     });
 
-    // Статус работы кофейни
+    // Автоматический статус работы кофейни
     const hours = data.hours || {};
     const openHour = Number(hours.open);
     const closeHour = Number(hours.close);
@@ -321,7 +331,7 @@
         : `Откроемся в ${padZero(openHour)}:00`;
     }
 
-    // Копирование адреса и пароля Wi-Fi
+    // Копирование адреса
     const addrBtn = $('#addr');
     if (addrBtn) {
       addrBtn.addEventListener('click', () => {
@@ -337,6 +347,7 @@
       });
     }
 
+    // Копирование пароля Wi-Fi
     const wifiBtn = $('#wifiBtn');
     if (wifiBtn) {
       wifiBtn.addEventListener('click', () => {
@@ -353,7 +364,7 @@
     }
   }
 
-  // ===== ЗАПУСК =====
+  // ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
   function init(data) {
     renderPage(data);
     setupInteractivity(data);
@@ -369,7 +380,7 @@
       .catch(() => {
         document.body.insertAdjacentHTML(
           'afterbegin',
-          '<p style="padding:20px;color:#fff;text-align:center">Запустите сайт командой npm start</p>'
+          '<p style="padding:20px;color:#261d17;text-align:center">Запустите сайт командой npm start</p>'
         );
       });
   }
