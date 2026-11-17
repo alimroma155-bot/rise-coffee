@@ -1,7 +1,8 @@
-﻿// RISE COFFEE — сервер: отдаёт сайт, хранит данные меню и принимает загрузку фото
+﻿// RISE COFFEE — сервер: отдаёт сайт, хранит данные меню в SQLite и принимает загрузку фото
 
 const express = require('express');
 const multer = require('multer');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -11,12 +12,20 @@ const PORT = process.env.PORT || 3002;
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'change-me';
 const ROOT = __dirname;
-const DATA_FILE = path.join(ROOT, 'data', 'content.json');
-const UPLOADS_DIR = path.join(ROOT, 'uploads');
+
+// Используем постоянное хранилище /data на сервере, если оно доступно
+const HAS_PERSISTENT_DISK = fs.existsSync('/data');
+const STORAGE_DIR = HAS_PERSISTENT_DISK ? '/data' : path.join(ROOT, 'data');
+
+const DB_FILE = path.join(STORAGE_DIR, 'rise.sqlite');
+const UPLOADS_DIR = HAS_PERSISTENT_DISK
+  ? path.join('/data', 'uploads')
+  : path.join(ROOT, 'uploads');
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 МБ
-const DEFAULT_CONTENT = { 
-  brand: { name: 'RISE', tagline: 'specialty coffee' }, 
-  categories: [] 
+const DEFAULT_CONTENT = {
+  brand: { name: 'RISE', tagline: 'specialty coffee' },
+  categories: []
 };
 
 // Проверка пароля администратора
@@ -26,26 +35,101 @@ if (ADMIN_PASS === 'change-me') {
 }
 
 // Инициализация директорий
+fs.mkdirSync(STORAGE_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 
-const app = express();
-app.disable('x-powered-by');
+// Копирование стартовых фотографий в постоянное хранилище при первом запуске на сервере
+if (HAS_PERSISTENT_DISK) {
+  const seedUploadsDir = path.join(ROOT, 'uploads');
+  if (fs.existsSync(seedUploadsDir)) {
+    for (const file of fs.readdirSync(seedUploadsDir)) {
+      const destFile = path.join(UPLOADS_DIR, file);
+      if (!fs.existsSync(destFile)) {
+        fs.copyFileSync(path.join(seedUploadsDir, file), destFile);
+      }
+    }
+  }
+}
 
-// ===== РАБОТА С ДАННЫМИ МЕНЮ =====
+// ===== ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ SQLITE =====
+const db = new Database(DB_FILE);
+db.pragma('journal_mode = WAL'); // Повышенная надёжность и скорость записи
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS site_content (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    data TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS content_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    data TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// Автоматическая миграция данных из content.json при первом запуске
+const existingRow = db.prepare('SELECT data FROM site_content WHERE id = 1').get();
+if (!existingRow) {
+  let initialData = DEFAULT_CONTENT;
+  const seedJsonPaths = [
+    path.join(STORAGE_DIR, 'content.json'),
+    path.join(ROOT, 'data', 'content.json')
+  ];
+
+  for (const jsonPath of seedJsonPaths) {
+    if (fs.existsSync(jsonPath)) {
+      try {
+        initialData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        console.log('Импортированы начальные данные из:', jsonPath);
+        break;
+      } catch (err) {
+        console.error('Ошибка чтения стартового JSON:', err);
+      }
+    }
+  }
+
+  db.prepare('INSERT INTO site_content (id, data) VALUES (1, ?)').run(
+    JSON.stringify(initialData)
+  );
+}
+
+// ===== РАБОТА С ДАННЫМИ МЕНЮ В SQLITE =====
+const selectContentStmt = db.prepare('SELECT data FROM site_content WHERE id = 1');
+const updateContentStmt = db.prepare(
+  'UPDATE site_content SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1'
+);
+const insertHistoryStmt = db.prepare('INSERT INTO content_history (data) VALUES (?)');
+const trimHistoryStmt = db.prepare(
+  'DELETE FROM content_history WHERE id NOT IN (SELECT id FROM content_history ORDER BY id DESC LIMIT 20)'
+);
+
+const saveContentTransaction = db.transaction((jsonStr) => {
+  const prev = selectContentStmt.get();
+  if (prev && prev.data) {
+    insertHistoryStmt.run(prev.data);
+    trimHistoryStmt.run();
+  }
+  updateContentStmt.run(jsonStr);
+});
+
 function readContent() {
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  } catch {
+    const row = selectContentStmt.get();
+    return row ? JSON.parse(row.data) : DEFAULT_CONTENT;
+  } catch (err) {
+    console.error('Ошибка чтения из SQLite:', err);
     return DEFAULT_CONTENT;
   }
 }
 
 function writeContent(obj) {
-  const tmp = DATA_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), 'utf8');
-  fs.renameSync(tmp, DATA_FILE);
+  saveContentTransaction(JSON.stringify(obj));
 }
+
+const app = express();
+app.disable('x-powered-by');
 
 // ===== РЕНДЕРИНГ ГЛАВНОЙ СТРАНИЦЫ =====
 let pageCache = null;
@@ -110,7 +194,7 @@ app.put('/admin/api/content', express.json({ limit: '2mb' }), (req, res) => {
   if (!Array.isArray(d.categories)) {
     return res.status(400).json({ error: 'Отсутствует массив categories' });
   }
-  
+
   writeContent(d);
   invalidateCache();
   res.json({ ok: true });
@@ -144,8 +228,19 @@ app.use((err, req, res, next) => {
   res.status(400).json({ error: err.message || 'Ошибка' });
 });
 
+// Корректное закрытие базы при остановке сервера
+process.on('SIGINT', () => {
+  db.close();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  db.close();
+  process.exit(0);
+});
+
 // Запуск сервера
 app.listen(PORT, () => {
-  console.log('Сайт:    http://localhost:' + PORT);
-  console.log('Админка: http://localhost:' + PORT + '/admin');
+  console.log('База SQLite:', DB_FILE);
+  console.log('Сайт:       http://localhost:' + PORT);
+  console.log('Админка:    http://localhost:' + PORT + '/admin');
 });
