@@ -44,7 +44,7 @@
     const hasDescription = item.desc && item.desc.trim();
 
     return `
-      <button class="it" data-item-id="${itemId}" data-item-json='${escapeHtml(JSON.stringify(item))}' ${hasDescription ? '' : 'disabled'}>
+      <button class="it" data-item-id="${itemId}" data-item-json="${escapeHtml(JSON.stringify(item))}" ${hasDescription ? '' : 'disabled'}>
         <span class="th">${imageHtml}</span>
         <span class="tx">
           <span class="n">${escapeHtml(item.name)}</span>
