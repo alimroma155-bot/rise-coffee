@@ -72,7 +72,6 @@ a {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  /* Мягкий тёмно-кофейный градиент: плотнее слева (под текстом) и прозрачнее справа (где фото) */
   background: linear-gradient(
     105deg,
     rgba(24, 18, 14, 0.78) 0%,
@@ -121,17 +120,16 @@ a {
   line-height: 0.88;
   letter-spacing: 0.01em;
   margin: 38px 0 8px;
-  color: #fffcf8; /* Светлый сливочно-белый вместо чёрного */
+  color: #fffcf8;
   text-shadow: 0 4px 24px rgba(18, 13, 10, 0.45);
 }
-
 
 .tag {
   font-family: var(--sans);
   font-size: 16px;
   font-weight: 400;
   letter-spacing: 0.16em;
-  color: #e6cbb0; /* Тёплый золотисто-кремовый оттенок */
+  color: #e6cbb0;
   text-shadow: 0 2px 12px rgba(18, 13, 10, 0.5);
 }
 
@@ -214,26 +212,20 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   height: 44px;
-  padding: 0 10px;
+  padding: 0 12px;
   border-radius: 999px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   color: var(--espresso);
   font-family: var(--sans);
   font-size: 13.5px;
-  font-weight: 500;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.25s ease, color 0.25s ease;
-}
-
-.chip svg {
-  flex-shrink: 0;
-  opacity: 0.8;
 }
 
 .chip:active {
@@ -246,11 +238,7 @@ a {
   border-color: var(--espresso);
   box-shadow: 0 6px 16px rgba(38, 29, 23, 0.16);
 }
-
-.chip[aria-current="true"] svg {
-  opacity: 1;
-}
-/* ===== КАТЕГОРИИ И КРУПНЫЕ КАРТОЧКИ БЛЮД ===== */
+/* ===== КАТЕГОРИИ И РАЗДЕЛЁННЫЕ КАРТОЧКИ БЛЮД ===== */
 .cat {
   padding-top: 26px;
   display: flex;
@@ -286,14 +274,12 @@ a {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  aspect-ratio: 3 / 4.15;
   width: 100%;
   border-radius: 22px;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--surface-card);
   border: 1px solid var(--border-soft);
-  box-shadow: 0 8px 24px rgba(38, 29, 23, 0.08);
+  box-shadow: 0 8px 24px rgba(38, 29, 23, 0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
@@ -306,16 +292,39 @@ a {
   transform: scale(0.98);
 }
 
-.th {
+/* ===== БЕЙДЖ NEW НА КАРТОЧКЕ ===== */
+.badge-new {
   position: absolute;
-  inset: 0;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(38, 29, 23, 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(230, 203, 176, 0.45);
+  color: #f3e4d0;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Верхняя часть карточки: чистая фотография */
+.th {
+  position: relative;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1 / 1.05;
   display: flex;
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 30% 25%, #f2e8dc, #dfd2c2);
   color: var(--espresso-soft);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .th img {
@@ -324,45 +333,44 @@ a {
   object-fit: cover;
 }
 
-.it::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(28, 21, 16, 0) 54%,
-    rgba(28, 21, 16, 0.65) 80%,
-    rgba(28, 21, 16, 0.9) 100%
-  );
-  pointer-events: none;
-}
-
+/* Нижняя часть карточки: название, описание и цена снизу */
 .tx {
-  position: relative;
-  z-index: 2;
+  flex: 1;
   width: 100%;
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .n {
   display: block;
   font-family: var(--sans);
-  font-size: 14.5px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.25;
-  color: #fffcf8;
+  color: var(--espresso);
+}
+
+.d {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--espresso-soft);
 }
 
 .p {
   display: block;
+  margin-top: auto;
+  padding-top: 8px;
   font-family: var(--sans);
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #e6cbb0;
-  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--espresso);
 }
 
 /* ===== МОДАЛЬНОЕ ОКНО ТОВАРА ===== */
@@ -515,7 +523,7 @@ a {
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 строго одинаковые колонки */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 22px;
 }
@@ -531,13 +539,14 @@ a {
   justify-content: center;
   text-align: center;
 }
+
 .f b {
   display: block;
   font-family: var(--serif);
-  font-size: clamp(16px, 4.2vw, 19px); /* Адаптивный размер, чтобы 08–22 и Весь день не рвались */
+  font-size: clamp(16px, 4.2vw, 19px);
   font-weight: 600;
   line-height: 1.15;
-  white-space: nowrap; /* Запрещаем перенос на вторую строку */
+  white-space: nowrap;
   color: var(--espresso);
 }
 
@@ -667,23 +676,17 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   height: 42px;
-  padding: 0 18px;
+  padding: 0 20px;
   border-radius: 999px;
   background: transparent;
   color: var(--espresso);
   font-family: var(--sans);
   font-size: 13.5px;
-  font-weight: 500;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
-}
-
-.nb svg {
-  flex-shrink: 0;
-  opacity: 0.75;
 }
 
 .nb:active {
@@ -694,10 +697,6 @@ a {
   background: var(--espresso);
   color: var(--surface-card);
   font-weight: 600;
-}
-
-.nb[aria-current="true"] svg {
-  opacity: 1;
 }
 
 /* ===== КНОПКА ВОЗВРАТА НАВЕРХ ===== */

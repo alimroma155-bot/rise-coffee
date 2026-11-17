@@ -26,13 +26,6 @@
     return /^(\/uploads\/|https?:\/\/)/.test(url || '');
   }
 
-  function getCategoryIcon(title) {
-    const t = String(title || '').toLowerCase();
-    if (t.includes('напит') || t.includes('кофе') || t.includes('чай')) return 'cup';
-    if (t.includes('десерт') || t.includes('выпеч') || t.includes('слад')) return 'cake';
-    return 'cutlery';
-  }
-
   // ===== РЕНДЕРИНГ ЭЛЕМЕНТОВ МЕНЮ =====
   function renderMenuItem(item, categoryId, itemIndex) {
     const imageUrl = isSafeUrl(item.image) ? item.image : '';
@@ -42,9 +35,11 @@
 
     const itemId = `item-${categoryId}-${itemIndex}`;
     const hasDescription = item.desc && item.desc.trim();
+    const newBadge = item.isNew ? '<span class="badge-new">NEW</span>' : '';
 
     return `
-      <button class="it" data-item-id="${itemId}" data-item-json="${escapeHtml(JSON.stringify(item))}" ${hasDescription ? '' : 'disabled'}>
+      <button class="it" data-item-id="${itemId}" data-item-json='${escapeHtml(JSON.stringify(item))}' ${hasDescription ? '' : 'disabled'}>
+        ${newBadge}
         <span class="th">${imageHtml}</span>
         <span class="tx">
           <span class="n">${escapeHtml(item.name)}</span>
@@ -87,17 +82,12 @@
       $('#top').style.backgroundImage = `url("${data.banner.image}")`;
     }
 
-    // Разделы меню с иконками
+    // Разделы меню без иконок
     const categories = data.categories || [];
     $('#chips').innerHTML = categories
       .map((cat, index) => {
         const isFirst = index === 0;
-        const iconId = getCategoryIcon(cat.title);
-        return `
-          <button class="chip" data-t="${escapeHtml(cat.id)}"${isFirst ? ' aria-current="true"' : ''}>
-            <svg width="15" height="15"><use href="#${iconId}"/></svg>
-            <span>${escapeHtml(cat.title)}</span>
-          </button>`;
+        return `<button class="chip" data-t="${escapeHtml(cat.id)}"${isFirst ? ' aria-current="true"' : ''}>${escapeHtml(cat.title)}</button>`;
       })
       .join('');
 
@@ -134,7 +124,7 @@
     const instagramUsername = String(contacts.instagram || '')
       .replace(/^.*instagram\.com\//i, '')
       .replace(/^@/, '')
-      .split(/[/?]/);
+      .split(/[/?]/)[0];
 
     if (phoneTel) {
       contactRows.push(renderContactCard('tel:' + phoneTel, 'Позвонить нам', phoneRaw, 'phone'));
@@ -380,7 +370,7 @@
       .catch(() => {
         document.body.insertAdjacentHTML(
           'afterbegin',
-          '<p style="padding:20px;color:#261d17;text-align:center">Запустите сайт командой npm start</p>'
+          '<p style="padding:20px;color:#2b211a;text-align:center">Запустите сайт командой npm start</p>'
         );
       });
   }
