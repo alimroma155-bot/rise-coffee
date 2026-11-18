@@ -115,11 +115,11 @@ a {
 }
 
 .logo {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(68px, 17vw, 108px);
-  line-height: 0.88;
-  letter-spacing: 0.01em;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: clamp(56px, 15vw, 88px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
   margin: 38px 0 8px;
   color: #fffcf8;
   text-shadow: 0 4px 24px rgba(18, 13, 10, 0.45);
