@@ -185,12 +185,18 @@ function render() {
     })
     .join('');
 
-  // Карточки товаров
+   // Карточки товаров
   const itemsHtml = items
     .map((item, index) => {
       const itemId = `${selectedCategoryIndex}:${index}`;
       const isOpen = openItemId === itemId;
       const imageUrl = item.image || '';
+
+      const statusNotes = [
+        item.price || '',
+        item.isNew ? 'NEW' : '',
+        item.isStopped ? 'Нет в наличии' : ''
+      ].filter(Boolean).join(' • ');
 
       return `
         <div class="it ${isOpen ? 'open' : ''}" data-item-container="${itemId}">
@@ -200,7 +206,7 @@ function render() {
             </span>
             <span class="im">
               <b>${escapeHtml(item.name || 'Без названия')}</b>
-              <small>${escapeHtml(item.price || '')}</small>
+              <small>${escapeHtml(statusNotes)}</small>
             </span>
             <svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </button>
@@ -209,6 +215,14 @@ function render() {
               <label class="fl">Название<input type="text" data-edit="name" data-item-idx="${index}" value="${escapeHtml(item.name || '')}"></label>
               <label class="fl">Описание<input type="text" data-edit="desc" data-item-idx="${index}" value="${escapeHtml(item.desc || '')}"></label>
               <label class="fl">Цена<input type="text" data-edit="price" data-item-idx="${index}" value="${escapeHtml(item.price || '')}"></label>
+              <label class="toggle-new">
+                <input type="checkbox" data-toggle-new="${index}" ${item.isNew ? 'checked' : ''}>
+                <span>Отметить как <b>NEW</b> (новинка)</span>
+              </label>
+              <label class="toggle-stop">
+                <input type="checkbox" data-toggle-stop="${index}" ${item.isStopped ? 'checked' : ''}>
+                <span>Отметить как <b>Нет в наличии</b></span>
+              </label>
               <label class="fl">
                 Фотография
                 <label class="drop ${imageUrl ? 'has' : ''}" style="${imageUrl ? `background-image:url('${escapeHtml(imageUrl)}')` : ''}">
@@ -279,8 +293,26 @@ function render() {
   });
 }
 
-// ===== ОБРАБОТКА ЗАГРУЗКИ ФОТОГРАФИЙ =====
+// ===== ОБРАБОТКА ПЕРЕКЛЮЧАТЕЛЯ СТОП-ЛИСТА И ЗАГРУЗКИ ФОТОГРАФИЙ =====
 document.addEventListener('change', async (e) => {
+  const stopToggle = e.target.closest('[data-toggle-stop]');
+  if (stopToggle) {
+    const itemIndex = parseInt(stopToggle.getAttribute('data-toggle-stop'), 10);
+    contentData.categories[selectedCategoryIndex].items[itemIndex].isStopped = stopToggle.checked;
+    markDirty();
+    render();
+    return;
+  }
+  const newToggle = e.target.closest('[data-toggle-new]');
+if (newToggle) {
+  const itemIndex = parseInt(newToggle.getAttribute('data-toggle-new'), 10);
+  contentData.categories[selectedCategoryIndex].items[itemIndex].isNew = newToggle.checked;
+  markDirty();
+  render();
+  return;
+}
+
+
   const input = e.target.closest('input[type="file"]');
   if (!input || !input.files || !input.files[0]) return;
 
@@ -301,7 +333,7 @@ document.addEventListener('change', async (e) => {
     });
 
     if (!response.ok) throw new Error(await getErrorMessage(response));
-    
+
     const data = await response.json();
     contentData.categories[categoryIndex].items[itemIndex].image = data.url;
     markDirty();
@@ -312,6 +344,7 @@ document.addEventListener('change', async (e) => {
     showToast('Ошибка загрузки: ' + error.message);
   }
 });
+
 
 // ===== ОБРАБОТКА КЛИКОВ =====
 document.addEventListener('click', async (e) => {

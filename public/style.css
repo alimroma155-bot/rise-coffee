@@ -291,6 +291,39 @@ a {
 .it:not([disabled]):active {
   transform: scale(0.98);
 }
+/* ===== СТОП-ЛИСТ НА КАРТОЧКЕ ===== */
+.it.is-stopped {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.it.is-stopped .th img {
+  filter: grayscale(85%) brightness(0.88);
+}
+
+.it.is-stopped .p {
+  color: var(--espresso-soft);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.badge-stop {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(179, 64, 47, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fffcf8;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
 
 /* ===== БЕЙДЖ NEW НА КАРТОЧКЕ ===== */
 .badge-new {
@@ -300,15 +333,14 @@ a {
   z-index: 3;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(38, 29, 23, 0.82);
+  background: rgba(179, 64, 47, 0.92);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(230, 203, 176, 0.45);
-  color: #f3e4d0;
+  color: #fffcf8;
   font-family: var(--sans);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }

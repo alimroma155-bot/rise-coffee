@@ -27,19 +27,27 @@
   }
 
   // ===== РЕНДЕРИНГ ЭЛЕМЕНТОВ МЕНЮ =====
-  function renderMenuItem(item, categoryId, itemIndex) {
+     function renderMenuItem(item, categoryId, itemIndex) {
     const imageUrl = isSafeUrl(item.image) ? item.image : '';
     const imageHtml = imageUrl
       ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" width="100%" height="100%" loading="lazy" decoding="async">`
       : '<svg width="42" height="42" style="opacity:0.35"><use href="#cup"/></svg>';
 
     const itemId = `item-${categoryId}-${itemIndex}`;
+    const isStopped = Boolean(item.isStopped);
+    const isNew = Boolean(item.isNew) && !isStopped;
     const hasDescription = item.desc && item.desc.trim();
-    const newBadge = item.isNew ? '<span class="badge-new">NEW</span>' : '';
+
+    let badgeHtml = '';
+    if (isStopped) {
+      badgeHtml = '<span class="badge-stop">Нет в наличии</span>';
+    } else if (isNew) {
+      badgeHtml = '<span class="badge-new">NEW</span>';
+    }
 
     return `
-      <button class="it" data-item-id="${itemId}" data-item-json='${escapeHtml(JSON.stringify(item))}' ${hasDescription ? '' : 'disabled'}>
-        ${newBadge}
+      <button class="it ${isStopped ? 'is-stopped' : ''}" data-item-id="${itemId}" data-item-json='${escapeHtml(JSON.stringify(item))}' ${!hasDescription || isStopped ? 'disabled' : ''}>
+        ${badgeHtml}
         <span class="th">${imageHtml}</span>
         <span class="tx">
           <span class="n">${escapeHtml(item.name)}</span>
@@ -47,6 +55,7 @@
         </span>
       </button>`;
   }
+
 
   function renderContactCard(href, title, subtitle, iconId) {
     const isExternal = /^https?:\/\//.test(href);
@@ -116,52 +125,49 @@
       .map((fact) => `<div class="f"><b>${escapeHtml(fact.title)}</b><span>${escapeHtml(fact.text)}</span></div>`)
       .join('');
 
-    // Карточки контактов с иконками
+           // Карточки контактов с иконками
     const contactRows = [];
     const phoneRaw = String(contacts.phone || '').trim();
     const phoneTel = phoneRaw.replace(/[^\d+]/g, '');
-    const whatsappNumber = String(contacts.whatsapp || '').replace(/\D/g, '');
-    const instagramUsername = String(contacts.instagram || '')
-      .replace(/^.*instagram\.com\//i, '')
-      .replace(/^@/, '')
-      .split(/[/?]/)[0];
+    const whatsappNumber = String(contacts.whatsapp || phoneTel || '').replace(/\D/g, '');
 
     if (phoneTel) {
       contactRows.push(renderContactCard('tel:' + phoneTel, 'Позвонить нам', phoneRaw, 'phone'));
     }
 
-    if (whatsappNumber && contacts.preorderText) {
-      const waUrl = `https://wa.me{whatsappNumber}?text=${encodeURIComponent(contacts.preorderText)}`;
-      contactRows.push(renderContactCard(waUrl, 'Предзаказ в WhatsApp', 'Забронировать столик', 'whatsapp'));
+       if (whatsappNumber) {
+      const preorderMsg = contacts.preorderText || 'Здравствуйте! Хочу сделать предзаказ в RISE COFFEE';
+      const waUrlObj = new URL('whatsapp://send');
+      waUrlObj.searchParams.set('phone', whatsappNumber);
+      waUrlObj.searchParams.set('text', preorderMsg);
+      contactRows.push(renderContactCard(waUrlObj.href, 'Написать в WhatsApp', 'Предзаказ и бронь столика', 'whatsapp'));
     }
-
     if (contacts.wifi && contacts.wifiPassword) {
       contactRows.push(
-        `<button class="cr" id="wifiBtn" data-pass="${escapeHtml(contacts.wifiPassword)}">
-          <span class="cr-left">
-            <span class="cr-icon"><svg width="19" height="19"><use href="#wifi"/></svg></span>
-            <span class="cr-text">
-              <span class="cr-title">Гостевой Wi-Fi</span>
-              <span class="cr-sub">${escapeHtml(contacts.wifi)} • Нажмите для копирования</span>
-            </span>
-          </span>
-          <svg class="cr-arrow" width="18" height="18"><use href="#arrow-right"/></svg>
-        </button>`
+        '<button class="cr" id="wifiBtn" data-pass="' + escapeHtml(contacts.wifiPassword) + '">' +
+          '<span class="cr-left">' +
+            '<span class="cr-icon"><svg width="19" height="19"><use href="#wifi"/></svg></span>' +
+            '<span class="cr-text">' +
+              '<span class="cr-title">Гостевой Wi-Fi</span>' +
+              '<span class="cr-sub">' + escapeHtml(contacts.wifi) + ' • Нажмите для копирования</span>' +
+            '</span>' +
+          '</span>' +
+          '<svg class="cr-arrow" width="18" height="18"><use href="#arrow-right"/></svg>' +
+        '</button>'
       );
     }
 
-    if (instagramUsername) {
-      contactRows.push(
-        renderContactCard(`https://instagram.com{instagramUsername}`, 'Наш Instagram', '@' + instagramUsername, 'insta')
-      );
-    }
-
-    if (contacts.mapQuery && brand.address) {
-      const mapUrl = `https://yandex.ru{encodeURIComponent(contacts.mapQuery)}`;
-      contactRows.push(renderContactCard(mapUrl, 'Проложить маршрут', brand.address, 'pin'));
+    if (contacts.mapQuery || brand.address) {
+      const query = contacts.mapQuery || brand.address;
+      const mapUrlObj = new URL('https://yandex.ru/maps/');
+      mapUrlObj.searchParams.set('text', query);
+      contactRows.push(renderContactCard(mapUrlObj.href, 'Проложить маршрут', brand.address || query, 'pin'));
     }
 
     $('#contactsList').innerHTML = contactRows.join('');
+
+
+
   }
   // ===== МОДАЛЬНОЕ ОКНО ТОВАРА =====
   function openItemModal(item) {
